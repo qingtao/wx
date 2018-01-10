@@ -135,7 +135,7 @@ type SendLocationInfo struct {
 	Poiname CDATA `xml:",omitempty"`
 }
 
-func newExampleInfo(to, from string) (string, error) {
+func newExampleInfo(from, to string) (string, error) {
 	info := &Info{
 		ToUserName:   CDATA(to),
 		FromUserName: CDATA(from),
