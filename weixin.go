@@ -50,6 +50,7 @@ func New(filename string) (*WeiXin, error) {
 	}
 	s := strings.Replace(string(b), "\r\n", "\n", -1)
 	lines := strings.Split(s, "\n")
+	fmt.Printf("%s\n--\n%s\n", b, s)
 	if len(lines) != wxConfigLines {
 		return nil, fmt.Errorf("weixin config lines must be %d", wxConfigLines)
 	}
