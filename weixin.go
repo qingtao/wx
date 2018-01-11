@@ -1,7 +1,8 @@
 // Package main used for weixin (mp.weixin.qq.com)
-package wx
+package weixin
 
 import (
+	"crypto/cipher"
 	"crypto/sha1"
 	"encoding/json"
 	"encoding/xml"
@@ -10,12 +11,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
-	"strings"
 )
 
-// TODO: replace to config
 const (
-	wxConfigLines          = 5
 	wxConfigHost           = "Host"
 	wxConfigAppID          = "AppID"
 	wxConfigAppSecret      = "AppSecret"
@@ -25,6 +23,7 @@ const (
 
 // WeiXin 微信公众号配置参数
 type WeiXin struct {
+	XMLName xml.Name `xml:"weixin" json:"-"`
 	// Host 微信服务器主机名
 	Host string
 	// 微信开发者ID
@@ -34,52 +33,47 @@ type WeiXin struct {
 	AppSecret string
 	// Token 令牌
 	Token string
-
-	// EncodingAESKey 消息加密密钥
+	// EncodingAESKey 消息加密密钥, 即消息加解密Key，长度固定为43个字符，从a-z,A-Z,0-9共62个字符中选取。由开发者在创建公众号插件时填写，也可申请修改
 	EncodingAESKey string
 
+	// 保存access_token
 	accessToken string
-	expires     string
+	// access_token的有效期
+	expires int
+	// aes加解密
+	block    cipher.Block
+	blockold cipher.Block
 }
 
-// New 读取key.txt, 生成新的*WeiXin, 失败时返回error非空
+// New 读取filename文件, 生成新的*WeiXin, 失败时返回error非空
 func New(filename string) (*WeiXin, error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("read weixin config: %s", err)
 	}
-	s := strings.Replace(string(b), "\r\n", "\n", -1)
-	lines := strings.Split(s, "\n")
-	fmt.Printf("%s\n--\n%s\n", b, s)
-	/*
-		if len(lines) != wxConfigLines {
-			return nil, fmt.Errorf("weixin config lines must be %d", wxConfigLines)
-		}
-	*/
-	var wx = new(WeiXin)
-	for i := 0; i < len(lines); i++ {
-		args := strings.Split(strings.TrimSpace(lines[i]), "=")
-		if len(args) != 2 {
-			/*
-				return nil, fmt.Errorf("weixin config invalid, line: %d - %s",
-					i, lines[i])
-			*/
-			continue
-		}
-		switch args[0] {
-		case wxConfigHost:
-			wx.Host = args[1]
-		case wxConfigAppID:
-			wx.AppID = args[1]
-		case wxConfigAppSecret:
-			wx.AppSecret = args[1]
-		case wxConfigToken:
-			wx.Token = args[1]
-		case wxConfigEncodingAESKey:
-			wx.EncodingAESKey = args[1]
-		}
+	var wx WeiXin
+	if err = xml.Unmarshal(b, &wx); err != nil {
+		return nil, fmt.Errorf("read weixin config: %s", err)
 	}
-	return wx, nil
+	return &wx, nil
+}
+
+// CreateWeiXinFile 创建weixin参数的xml文件, 按照申请的微信公众平台修改参数
+func CreateWeiXinFile(filename string) error {
+	wx := &WeiXin{
+		Host:           "api.weixin.qq.com",
+		AppID:          "appid",
+		AppSecret:      "appsecret",
+		Token:          "token",
+		EncodingAESKey: "-",
+	}
+	b, err := xml.MarshalIndent(wx, "", "  ")
+	if err != nil {
+		return err
+	}
+	// 添加xml.Header到文件第一行
+	b = append([]byte(xml.Header), b[0:]...)
+	return ioutil.WriteFile(filename, b, 0664)
 }
 
 const (
@@ -105,6 +99,7 @@ type Token struct {
 	ErrMsg string `json:"errmsg,omitempty"`
 }
 
+// Unmarshal 使用函数f([]byte, interface{})解析微信的消息结构
 func Unmarshal(rc io.ReadCloser, a interface{}, f func([]byte, interface{}) error) error {
 	b, err := ioutil.ReadAll(rc)
 	if err != nil {
@@ -120,6 +115,8 @@ func Unmarshal(rc io.ReadCloser, a interface{}, f func([]byte, interface{}) erro
 
 // GetAccessToken 获取微信公众平台的access_token，
 // error为nil时，access_token = Token.AccessToken和expires_in = Token.ExpiresIn
+//	TODO:
+//	  * 将获取和更新access_token分离成服务
 func (wx *WeiXin) GetAccessToken() error {
 	// 组合URL
 	uri := fmt.Sprintf("https://%s/%s?grant_type=%s&appid=%s&secret=%s",
@@ -139,10 +136,12 @@ func (wx *WeiXin) GetAccessToken() error {
 	if t.AccessToken == "" {
 		return fmt.Errorf("appid %s get access_token errcode: %d, errmsg: %s", wx.AppID, t.ErrCode, t.ErrMsg)
 	}
+	wx.accessToken = t.AccessToken
+	wx.expires = t.ExpiresIn
 	return nil
 }
 
-// 计算微信服务器发送的token，timestamp、nonce的sha1散列值，与signature校验
+// VerfiyWxToken 使用Weixin.Token与timestamp、nonce的sha1值，与signature校验
 func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature string) bool {
 	list := []string{wx.Token, timestamp, nonce}
 	// 排序字符串
@@ -160,7 +159,10 @@ func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature string) bool {
 	return false
 }
 
-// 处理微信服务器验证token请求
+// HandleEvent 处理微信服务器验证token请求
+//	TODO:
+//	  1. 消息接收与转发队列
+//	  2. 应答队列
 func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%s\n", r)
 	r.ParseForm()
@@ -172,7 +174,7 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	if !wx.VerfiyWxToken(timestamp, nonce, signature) {
 		ok = false
 		// 只打印
-		fmt.Println("handle weixin info verfiy failed.")
+		fmt.Println("handle weixin message verfiy failed.")
 		return
 	}
 	switch r.Method {
@@ -189,16 +191,16 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		var wxinfo Info
-		if err := Unmarshal(r.Body, &wxinfo, xml.Unmarshal); err != nil {
-			fmt.Printf("HandleWxInfo: %s\n", err)
+		var msg Message
+		if err := Unmarshal(r.Body, &msg, xml.Unmarshal); err != nil {
+			fmt.Printf("HandleMsg: %s\n", err)
 			return
 		}
-		fmt.Printf("%#v\n", wxinfo)
+		fmt.Printf("%#v\n", msg)
 		fmt.Println("------")
-		s, err := newExampleInfo(string(wxinfo.ToUserName), string(wxinfo.FromUserName))
+		s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName))
 		if err != nil {
-			fmt.Printf("HandleWxInfo: %s\n", err)
+			fmt.Printf("HandleMsg: %s\n", err)
 			fmt.Fprint(w, "success")
 			return
 		}

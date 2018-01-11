@@ -1,4 +1,4 @@
-package wx
+package weixin
 
 import (
 	"bytes"
@@ -27,7 +27,8 @@ const (
 	WxGetCurrentSelfMenu = "cgi-bin/get_current_selfmenu_info"
 )
 
-// 自定义菜单创建接口的按钮类型，根据微信公众平台文档的描述(https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421141013)
+// 自定义菜单创建接口的按钮类型，根据微信公众平台文档的描述
+//   https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421141013
 const (
 	// WxMenuClickType 点击推事件用户点击click类型按钮后，微信服务器会通过消息接口推送消息类型为event的结构给开发者（参考消息接口指南），并且带上按钮中开发者填写的key值，开发者可以通过自定义的key值与用户进行交互
 	WxMenuClickType = "click"
@@ -77,8 +78,14 @@ type Button struct {
 
 // MenuOfConditional 查询自定义菜单接口返回数据
 type MenuOfConditional struct {
-	Menu            *Menu            `json:"menu,omitempty"`
+	// Menu 菜单
+	Menu *Menu `json:"menu,omitempty"`
+	// ConditionalMenu 个性化菜单
 	ConditionalMenu *ConditionalMenu `json:"conditionalmenu,omitempty"`
+	// ErrCode 自定义菜单错误码
+	ErrCode int `json:"errcode,omitempty"`
+	// ErrMsg 自定义菜单错误信息
+	ErrMsg string `json:"errmsg,omitempty"`
 }
 
 // ConditionalMenu 个性化菜单
@@ -87,10 +94,15 @@ type ConditionalMenu struct {
 	Button *Button `json:"button,omitempty"`
 	// MatchRule
 	MatchRule *MatchRule `json:"matchrule,omitempty"`
+	// ErrCode 自定义菜单错误码
+	ErrCode int `json:"errcode,omitempty"`
+	// ErrMsg 自定义菜单错误信息
+	ErrMsg string `json:"errmsg,omitempty"`
 }
 
 // NewsInfo 在公众平台官网通过网站功能发布菜单包含此字段
 type NewsInfo struct {
+	// List 菜单列表
 	List []*NewsInfoList `json:"list,omitempty"`
 }
 
@@ -138,18 +150,19 @@ func (wx *WeiXin) post(action string, menu interface{}) (*Response, error) {
 		wx.Host, WxMenuPath, action, wx.accessToken)
 	b, err := json.Marshal(menu)
 	if err != nil {
-		return nil, fmt.Errorf("json marshal: %s\n", err)
+		return nil, fmt.Errorf("appid %s json marshal: %s\n", wx.AppID, err)
 	}
 	res, err := http.Post(uri,
 		"Content-Type: application/json; encoding: utf-8",
 		bytes.NewReader(b))
 	if err != nil {
-		return nil, fmt.Errorf("post create menu: %s\n", err)
+		return nil, fmt.Errorf("appid %s post create menu: %s\n",
+			wx.AppID, err)
 	}
 
 	var wxinfo Response
 	if err = Unmarshal(res.Body, &wxinfo, json.Unmarshal); err != nil {
-		return nil, fmt.Errorf("unmarshal response when create menu: %s", err)
+		return nil, fmt.Errorf("appid %s unmarshal response when create menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
@@ -165,12 +178,12 @@ func (wx *WeiXin) GetMenu(accessToken string) (*MenuOfConditional, error) {
 		wx.Host, WxMenuPath, WxMenuGet, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
-		return nil, fmt.Errorf("get menu: %s", err)
+		return nil, fmt.Errorf("appid %s get menu: %s", wx.AppID, err)
 	}
 
 	var menu MenuOfConditional
 	if err = Unmarshal(res.Body, &menu, json.Unmarshal); err != nil {
-		return nil, fmt.Errorf("unmarshal response when get menu: %s", err)
+		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", err)
 	}
 
 	return &menu, nil
@@ -182,12 +195,13 @@ func (wx *WeiXin) deleteMenu(action string) (*Response, error) {
 		wx.Host, WxMenuPath, action, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
-		return nil, fmt.Errorf("the request of delete menu %s", err)
+		return nil, fmt.Errorf("appid %s the request of delete menu %s",
+			wx.AppID, err)
 	}
 
 	var wxinfo Response
 	if err := Unmarshal(res.Body, &wxinfo, json.Unmarshal); err != nil {
-		return nil, fmt.Errorf("unmarshal response when delete menu: %s", err)
+		return nil, fmt.Errorf("appid %s unmarshal response when delete menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
@@ -279,11 +293,12 @@ func (wx *WeiXin) GetCurrentSelfMenu() (*CurrentSelfMenu, error) {
 		WxGetCurrentSelfMenu, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
-		return nil, fmt.Errorf("get_current_selfmenu_info: %s", err)
+		return nil, fmt.Errorf("appid %s get_current_selfmenu_info: %s",
+			wx.AppID, err)
 	}
 	var menu CurrentSelfMenu
 	if err = Unmarshal(res.Body, &menu, json.Unmarshal); err != nil {
-		return nil, fmt.Errorf("get_current_selfmenu_info unmarshal response: %s", err)
+		return nil, fmt.Errorf("appid %s get_current_selfmenu_info unmarshal response: %s", wx.AppID, err)
 	}
 	return &menu, nil
 }

@@ -1,4 +1,4 @@
-package wx
+package weixin
 
 import (
 	"encoding/xml"
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// WxInfo 微信公众平台消息结构
-type Info struct {
+// Message 微信公众平台消息结构
+type Message struct {
 	XMLName xml.Name `xml:"xml" json:"-"`
 	// ToUserName 开发者微信号
 	ToUserName CDATA
@@ -52,16 +52,16 @@ type Info struct {
 	EventKey CDATA `xml:",omitempty"`
 	// Ticket 二维码的ticket，可用来换取二维码图片
 	Ticket CDATA `xml:",omitempty"`
-	// Latitude
+	// Latitude 地理位置纬度
 	Latitude float64 `xml:",omitempty"`
-	// Longitude
+	// Longitude 地理位置经度
 	Longitude float64 `xml:",omitempty"`
-	// Precision
+	// Precision 地理位置精度
 	Precision float64 `xml:",omitempty"`
 	// Scene 场景值，固定为1
 	Scene string `xml:",omitempty"`
 
-	// 菜单事件
+	// 自定义菜单事件
 
 	// MenuID 点击菜单跳转链接时的时间推送, Event: VIEW
 	MenuID string `xml:,omitempty"`
@@ -79,7 +79,7 @@ type Info struct {
 	//   3. Event是pic_weixin:
 	//     弹出微信相册发图器的事件推送
 	SendPicsInfo *SendPicsInfo `xml:",omitempty"`
-	//
+	// 	SendLocationInfo 发送的位置信息
 	SendLocationInfo *SendLocationInfo `xml:",omitempty"`
 }
 
@@ -102,6 +102,7 @@ type ScanCodeInfo struct {
 	ScanResult CDATA `xml:"ScanResult,omitempty"`
 }
 
+// Item in PicList
 type Item struct {
 	// PicMd5Sum 图片的MD5值，开发者若需要，可用于验证接收到图片
 	PicMd5Sum CDATA `xml:omitempty"`
@@ -135,17 +136,17 @@ type SendLocationInfo struct {
 	Poiname CDATA `xml:",omitempty"`
 }
 
-func newExampleInfo(from, to string) (string, error) {
-	info := &Info{
+func newExampleMsg(from, to string) (string, error) {
+	msg := &Message{
 		ToUserName:   CDATA(to),
 		FromUserName: CDATA(from),
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "text",
 		Content:      "欢迎关注！",
 	}
-	b, err := xml.Marshal(info)
+	b, err := xml.Marshal(msg)
 	if err != nil {
-		return "", fmt.Errorf("marshal the info to xml: %s", err)
+		return "", fmt.Errorf("marshal the message to xml: %s", err)
 	}
 	return string(b), nil
 }

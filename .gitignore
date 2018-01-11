@@ -13,5 +13,7 @@
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
-#key.txt
+#ignore key file
 key.txt
+key.xml
+aesky/

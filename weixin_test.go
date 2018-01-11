@@ -1,4 +1,4 @@
-package wx
+package weixin
 
 import (
 	"encoding/json"
@@ -12,26 +12,30 @@ import (
 )
 
 func TestWx(t *testing.T) {
-	wx, err := New("key.txt")
+	wx, err := New("key.xml")
 	if err != nil {
 		log.Fatalf("%s\n", err)
 	}
+	fmt.Printf("%#v\n", wx)
 
 	if err = wx.GetAccessToken(); err != nil {
 		log.Fatalln(err)
 	}
-	m, err := wx.GetMenu(wx.accessToken)
-	if err != nil {
-		log.Fatalf("%s\n", err)
-	}
-	fmt.Printf("%#s\n", m)
-
-	/*
-		res, err := GetCurrentSelfMenu(api, tk.AccessToken)
+	fmt.Printf("access_token: %s\nexpires_in: %d\n", wx.accessToken, wx.expires)
+	t.Run("Menu", func(t *testing.T) {
+		m, err := wx.GetMenu(wx.accessToken)
 		if err != nil {
 			log.Fatalf("%s\n", err)
 		}
-	*/
+		fmt.Printf("%#v\n", m)
+	})
+	t.Run("Self", func(t *testing.T) {
+		self, err := wx.GetCurrentSelfMenu()
+		if err != nil {
+			log.Fatalf("%s\n", err)
+		}
+		fmt.Printf("%#v\n", self)
+	})
 	http.HandleFunc("/wx", wx.HandleEvent)
 	http.ListenAndServe(":80", nil)
 }
@@ -104,7 +108,7 @@ func out(f, s string) {
 }
 
 func TestXML(t *testing.T) {
-	var e = &Info{
+	var e = &Message{
 		ToUserName:   "toUser",
 		FromUserName: "fromUser",
 		CreateTime:   time.Now().Unix(),
@@ -140,21 +144,21 @@ func TestXML(t *testing.T) {
   <Event><![CDATA[event]]></Event>
   <EventKey><![CDATA[eventKey]]></EventKey>
 </xml>`
-	var ev Info
-	if err := xml.Unmarshal([]byte(ss), &ev); err != nil {
+	var msg Message
+	if err := xml.Unmarshal([]byte(ss), &msg); err != nil {
 		log.Fatalln("%s\n", err)
 	}
 	fmt.Println("weixin event:")
-	fmt.Printf("-- ToUserName: %s\n", ev.ToUserName)
-	fmt.Printf("-- ToUserName: %v\n", reflect.TypeOf(ev.ToUserName))
-	fmt.Printf("-- FromUserName: %s\n", ev.FromUserName)
-	fmt.Printf("-- CreateTime: %d\n", ev.CreateTime)
-	fmt.Printf("-- Event: %s\n", ev.Event)
-	fmt.Printf("-- EventKey: %s\n", ev.EventKey)
+	fmt.Printf("-- ToUserName: %s\n", msg.ToUserName)
+	fmt.Printf("-- ToUserName: %v\n", reflect.TypeOf(msg.ToUserName))
+	fmt.Printf("-- FromUserName: %s\n", msg.FromUserName)
+	fmt.Printf("-- CreateTime: %d\n", msg.CreateTime)
+	fmt.Printf("-- Event: %s\n", msg.Event)
+	fmt.Printf("-- EventKey: %s\n", msg.EventKey)
 }
 
-func TestInfo(t *testing.T) {
-	info := &Info{
+func TestMsg(t *testing.T) {
+	info := &Message{
 		ToUserName:   "gh_763d78092799",
 		FromUserName: "okNT7wrJ00zXBowaRS-CAeFcQ7rc",
 		CreateTime:   1515567192,
@@ -175,9 +179,9 @@ func TestInfo(t *testing.T) {
 		log.Fatalln(err)
 	}
 	fmt.Printf("%s\n", b)
-	var i Info
-	if err = xml.Unmarshal(b, &i); err != nil {
+	var msg Message
+	if err = xml.Unmarshal(b, &msg); err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("%s\n", i.MsgType)
+	fmt.Printf("%s\n", msg.MsgType)
 }
