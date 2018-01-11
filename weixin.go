@@ -251,6 +251,7 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			fmt.Printf("%s\n", resp)
+			w.Header().Set("Content-Type", "application/xml; encoding=utf-8")
 			fmt.Fprintf(w, "%s", resp)
 			return
 		}
