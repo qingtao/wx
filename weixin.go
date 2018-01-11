@@ -141,18 +141,23 @@ func (wx *WeiXin) GetAccessToken() error {
 	return nil
 }
 
-// VerfiyWxToken 使用Weixin.Token与timestamp、nonce的sha1值，与signature校验
-func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature string) bool {
-	list := []string{wx.Token, timestamp, nonce}
-	// 排序字符串
+// Sign 生成签名，ciphertext是空字符串时，只是用token, timestamp, nonce
+func Sign(token, timestamp, nonce, ciphertext string) string {
+	list := []string{token, timestamp, nonce}
+	if ciphertext != "" {
+		list = append(list, ciphertext)
+	}
 	sort.Strings(list)
-
 	h := sha1.New()
 	for i := 0; i < len(list); i++ {
 		fmt.Fprint(h, list[i])
 	}
-	// 16进制字符串
-	hashcode := fmt.Sprintf("%x", h.Sum(nil))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// VerfiyWxToken 使用Weixin.Token与timestamp、nonce的sha1值，与signature校验
+func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature, ciphertext string) bool {
+	hashcode := Sign(wx.Token, timestamp, nonce, ciphertext)
 	if hashcode == signature {
 		return true
 	}
@@ -167,20 +172,19 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%s\n", r)
 	r.ParseForm()
 	signature := r.FormValue("signature")
+	msg_signature := r.FormValue("msg_signature")
+	if signature == "" && msg_signature == "" {
+		return
+	}
 	timestamp := r.FormValue("timestamp")
 	nonce := r.FormValue("nonce")
 
-	ok := true
-	if !wx.VerfiyWxToken(timestamp, nonce, signature) {
-		ok = false
-		// 只打印
-		fmt.Println("handle weixin message verfiy failed.")
-		return
-	}
 	switch r.Method {
 	// GET方法用于微信服务器配置验证
 	case "GET":
-		if !ok {
+		if !wx.VerfiyWxToken(timestamp, nonce, signature, "") {
+			// 只打印
+			fmt.Println("handle weixin message verfiy failed.")
 			fmt.Fprint(w, "")
 			return
 		}
@@ -188,9 +192,69 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", echostr)
 		// POST
 	case "POST":
-		if !ok {
+		if msg_signature != "" {
+			var msg EncryptMessage
+			if err := Unmarshal(r.Body, &msg, xml.Unmarshal); err != nil {
+				fmt.Printf("HandleMsg: %s\n", err)
+				return
+			}
+			if !wx.VerfiyWxToken(timestamp, nonce, msg_signature, string(msg.Encrypt)) {
+				fmt.Println("handle weixin message verfiy failed.")
+				fmt.Fprint(w, "")
+				return
+			}
+			block, err := NewCipherBlock(wx.EncodingAESKey)
+			if err != nil {
+				fmt.Printf("HandleMsg: cipher block %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+			bs, err := Decrypt(block, string(msg.Encrypt))
+			if err != nil {
+				fmt.Printf("HandleMsg: decrypt %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+
+			xmltext, appid, err := ParseEncryptMessage(bs, wx.AppID)
+			if err != nil {
+				fmt.Printf("HandleMsg: decrypt %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+
+			var msg1 Message
+			if err := xml.Unmarshal(xmltext, &msg1); err != nil {
+				fmt.Printf("HandleMsg: unmarshal plaintext %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+
+			s, err := newExampleMsg(string(msg1.ToUserName), string(msg1.FromUserName))
+			if err != nil {
+				fmt.Printf("HandleMsg: make msg %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+
+			ctext, err := Encrypt(block, s, appid)
+			if err != nil {
+				fmt.Printf("HandleMsg: encrypt %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+			eres := NewEncryptResponse(wx.AppID, wx.Token, nonce, ctext)
+			resp, err := xml.Marshal(eres)
+			if err != nil {
+				fmt.Printf("HandleMsg: encrypt %s\n", err)
+				fmt.Fprint(w, "success")
+				return
+			}
+			fmt.Printf("%s\n", resp)
+			fmt.Fprintf(w, "%s", resp)
 			return
 		}
+
 		var msg Message
 		if err := Unmarshal(r.Body, &msg, xml.Unmarshal); err != nil {
 			fmt.Printf("HandleMsg: %s\n", err)

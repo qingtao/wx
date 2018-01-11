@@ -10,11 +10,15 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	mrand "math/rand"
+	"time"
 )
 
 const (
-	wxAESHeader = 16
-	wxAESLength = 4
+	wxNonce       = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
+	wxNonceLength = 10
+	wxAESHeader   = 16
+	wxAESLength   = 4
 )
 
 // NewAESKey根据生成AES密钥
@@ -32,7 +36,7 @@ func NewCipherBlock(encodingAESKey string) (cipher.Block, error) {
 }
 
 // MessageWithAES 加密消息格式
-type MessageWithAES struct {
+type EncryptMessage struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`
 	// ToUserName 接收者
@@ -42,7 +46,7 @@ type MessageWithAES struct {
 }
 
 // ReponseWithAES 响应微信服务器的格式
-type ReponseWithAES struct {
+type EncryptResponse struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`
 	// Encrypt加密的字符串
@@ -50,54 +54,83 @@ type ReponseWithAES struct {
 	// MsgSignature 消息签名
 	MsgSignature CDATA
 	// TimeStamp 发送事件
-	TimeStamp int64
+	TimeStamp string
 	// Nonce 随机字符
 	Nonce CDATA
 }
 
-// Decrypt 解密
-func Decrypt(block cipher.Block, ciphertext string) (string, error) {
-	text, err := base64.StdEncoding.DecodeString(ciphertext)
-	if err != nil {
-		return "", fmt.Errorf("decrypt: ciphertext %s", err)
+func randomString() string {
+	bs := make([]byte, wxNonceLength)
+	mrand.Seed(time.Now().UnixNano())
+	for i := 0; i < len(bs); i++ {
+		b := wxNonce[mrand.Intn(len(bs))]
+		bs[i] = b
 	}
-	if len(text) < block.BlockSize() {
-		return "", fmt.Errorf("decrypt: ciphertext too short: %d", len(text))
-	}
-	if len(text)%block.BlockSize() != 0 {
-		return "", fmt.Errorf("decrypt: ciphertext is not a multiple of the block size")
-	}
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(text, text)
+	return string(bs)
+}
 
-	start := wxAESHeader + wxAESLength
-	b := bytes.NewReader(text[wxAESHeader:start])
+func NewEncryptResponse(appid, token, nonce, ciphertext string) *EncryptResponse {
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	if nonce == "" {
+		nonce = randomString()
+	}
+	signature := Sign(token, timestamp, nonce, ciphertext)
+
+	return &EncryptResponse{
+		Encrypt:      CDATA(ciphertext),
+		MsgSignature: CDATA(signature),
+		TimeStamp:    timestamp,
+		Nonce:        CDATA(nonce),
+	}
+}
+
+// Decrypt 解密
+func Decrypt(block cipher.Block, ciphertext string) ([]byte, error) {
+	bs, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt: ciphertext %s", err)
+	}
+	if len(bs) < block.BlockSize() {
+		return nil, fmt.Errorf("decrypt: ciphertext too short: %d", len(bs))
+	}
+	if len(bs)%block.BlockSize() != 0 {
+		return nil, fmt.Errorf("decrypt: ciphertext is not a multiple of the block size")
+	}
+	iv := bs[:aes.BlockSize]
+	bs = bs[aes.BlockSize:]
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(bs, bs)
+	return bs, nil
+}
+
+func ParseEncryptMessage(b []byte, appid string) ([]byte, string, error) {
+	xmlStart := wxAESHeader + wxAESLength
+	buf := bytes.NewReader(b[wxAESHeader:xmlStart])
 
 	var length int32
-	if err = binary.Read(b, binary.BigEndian, &length); err != nil {
-		return "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
+	if err := binary.Read(buf, binary.BigEndian, &length); err != nil {
+		return nil, "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
 	}
-	fmt.Println(length)
-	fmt.Printf("%s\n", text)
-	return string(text[start : start+int(length)]), nil
+	xmlEnd := xmlStart + int(length)
+	return b[xmlStart:xmlEnd], string(b[xmlEnd : xmlEnd+len(appid)]), nil
 }
 
 // Encrypt 加密
 func Encrypt(block cipher.Block, plaintext string, appid string) (string, error) {
 	// 随机16位字符
-	text := []byte(plaintext)
+	bs := []byte(plaintext)
 	rb := make([]byte, wxAESHeader)
 	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
 		return "", fmt.Errorf("encrypt when read 16 rand bytes %s", err)
 	}
+	fmt.Println("rb", len(rb))
 	// 取消息的网络长度4字节
 	var buf bytes.Buffer
-	if err := binary.Write(&buf, binary.BigEndian, int32(len(text))); err != nil {
+	if err := binary.Write(&buf, binary.BigEndian, int32(len(bs))); err != nil {
 		return "", fmt.Errorf("encrypt when generate len(plaintext)")
 	}
-	length := buf.Bytes()
+	length := make([]byte, wxAESLength)
+	copy(length, buf.Bytes())
 
 	buf.Reset()
 	// 写入16位随机字符
@@ -105,25 +138,25 @@ func Encrypt(block cipher.Block, plaintext string, appid string) (string, error)
 	// 写入4位网络长度
 	buf.Write(length)
 	// 写入消息文本
-	buf.Write(text)
+	buf.Write(bs)
 	// 写入appid
 	buf.Write([]byte(appid))
-	text = buf.Bytes()
+	bs = buf.Bytes()
 
-	n := aes.BlockSize - len(text)%aes.BlockSize
+	n := aes.BlockSize - len(bs)%aes.BlockSize
 	if n != 0 {
 		padding := make([]byte, n)
 		if _, err := io.ReadFull(rand.Reader, padding); err != nil {
 			return "", fmt.Errorf("encrypt when add padding %s", err)
 		}
-		text = append(text, padding...)
+		bs = append(bs, padding...)
 	}
-	ciphertext := make([]byte, aes.BlockSize+len(text))
+	ciphertext := make([]byte, aes.BlockSize+len(bs))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return "", fmt.Errorf("encrypt when read iv %s", err)
 	}
 	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext[aes.BlockSize:], text)
+	mode.CryptBlocks(ciphertext[aes.BlockSize:], bs)
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }

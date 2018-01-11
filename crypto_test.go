@@ -44,6 +44,10 @@ func TestAES(t *testing.T) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("%#v\n", plaintext)
+		b, id, err := ParseEncryptMessage(plaintext, appid)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("xml: %s\nid: %s\n", b, id)
 	})
 }
