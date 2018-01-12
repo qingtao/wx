@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -19,6 +18,7 @@ const (
 	wxConfigAppSecret      = "AppSecret"
 	wxConfigToken          = "Token"
 	wxConfigEncodingAESKey = "EncodingAESKey"
+	wxEncryptType          = "aes"
 )
 
 // WeiXin 微信公众号配置参数
@@ -35,14 +35,16 @@ type WeiXin struct {
 	Token string
 	// EncodingAESKey 消息加密密钥, 即消息加解密Key，长度固定为43个字符，从a-z,A-Z,0-9共62个字符中选取。由开发者在创建公众号插件时填写，也可申请修改
 	EncodingAESKey string
+	// EncodingAESKey 旧的消息加密密钥
+	OldEncodingAESKey string
 
 	// 保存access_token
 	accessToken string
 	// access_token的有效期
 	expires int
 	// aes加解密
-	block    cipher.Block
-	blockold cipher.Block
+	currentBlock cipher.Block
+	oldBlock     cipher.Block
 }
 
 // New 读取filename文件, 生成新的*WeiXin, 失败时返回error非空
@@ -54,6 +56,20 @@ func New(filename string) (*WeiXin, error) {
 	var wx WeiXin
 	if err = xml.Unmarshal(b, &wx); err != nil {
 		return nil, fmt.Errorf("read weixin config: %s", err)
+	}
+	if wx.EncodingAESKey != "" {
+		block, err := NewCipherBlock(wx.EncodingAESKey)
+		if err != nil {
+			return nil, err
+		}
+		wx.currentBlock = block
+	}
+	if wx.OldEncodingAESKey != "" {
+		block, err := NewCipherBlock(wx.OldEncodingAESKey)
+		if err != nil {
+			return nil, err
+		}
+		wx.oldBlock = block
 	}
 	return &wx, nil
 }
@@ -99,20 +115,6 @@ type Token struct {
 	ErrMsg string `json:"errmsg,omitempty"`
 }
 
-// Unmarshal 使用函数f([]byte, interface{})解析微信的消息结构
-func Unmarshal(rc io.ReadCloser, a interface{}, f func([]byte, interface{}) error) error {
-	b, err := ioutil.ReadAll(rc)
-	if err != nil {
-		return fmt.Errorf("read http response: %s", err)
-	}
-	defer rc.Close()
-	// 解析json
-	if err := f(b, a); err != nil {
-		return fmt.Errorf("unmarshal: %s", err)
-	}
-	return nil
-}
-
 // GetAccessToken 获取微信公众平台的access_token，
 // error为nil时，access_token = Token.AccessToken和expires_in = Token.ExpiresIn
 //	TODO:
@@ -126,9 +128,15 @@ func (wx *WeiXin) GetAccessToken() error {
 		return fmt.Errorf("appid %s get access_token: %s",
 			wx.AppID, err)
 	}
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("appid %s read response: %s", err)
+	}
+	defer res.Body.Close()
+
 	var t Token
-	if err = Unmarshal(res.Body, &t, json.Unmarshal); err != nil {
-		return fmt.Errorf("appid %s unmarshal response: %s",
+	if err = json.Unmarshal(b, &t); err != nil {
+		return fmt.Errorf("appid %s unmarshal response json: %s",
 			wx.AppID, err)
 	}
 
@@ -141,12 +149,13 @@ func (wx *WeiXin) GetAccessToken() error {
 	return nil
 }
 
-// Sign 生成签名，ciphertext是空字符串时，只是用token, timestamp, nonce
+// Sign 生成签名，ciphertext是空字符串时，只使用token, timestamp, nonce
 func Sign(token, timestamp, nonce, ciphertext string) string {
 	list := []string{token, timestamp, nonce}
 	if ciphertext != "" {
 		list = append(list, ciphertext)
 	}
+	// 排序token timestamp, nonce和ciphertext
 	sort.Strings(list)
 	h := sha1.New()
 	for i := 0; i < len(list); i++ {
@@ -155,7 +164,7 @@ func Sign(token, timestamp, nonce, ciphertext string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// VerfiyWxToken 使用Weixin.Token与timestamp、nonce的sha1值，与signature校验
+// VerfiyWxToken 使用*Weixin.Token与timestamp、nonce的sha1值，与signature校验
 func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature, ciphertext string) bool {
 	hashcode := Sign(wx.Token, timestamp, nonce, ciphertext)
 	if hashcode == signature {
@@ -164,109 +173,159 @@ func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature, ciphertext string) 
 	return false
 }
 
+func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("encrypt event --- %s\n", r)
+	r.ParseForm()
+	msgSignature := r.FormValue("msg_signature")
+	encryptType := r.FormValue("encrypt_type")
+	if msgSignature == "" || encryptType != wxEncryptType {
+		wx.HandleEvent(w, r)
+		return
+	}
+	// 校验消息是否来自微信服务器
+	signature := r.FormValue("signature")
+	timestamp := r.FormValue("timestamp")
+	nonce := r.FormValue("nonce")
+
+	if !wx.VerfiyWxToken(timestamp, nonce, signature, "") {
+		// 只打印
+		fmt.Println("verify event from weixin failed")
+		return
+	}
+	if wx.currentBlock == nil {
+		fmt.Printf("EncodingAESKey not exists")
+		fmt.Fprint(w, "")
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("handle encrypt message read body %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+	defer r.Body.Close()
+	var emsg EncryptMessage
+	if err := xml.Unmarshal(body, &emsg); err != nil {
+		fmt.Printf("handle encrypt message parse xml content first %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+	if !wx.VerfiyWxToken(timestamp, nonce, msgSignature, string(emsg.Encrypt)) {
+		fmt.Println("handle weixin message verfiy encrypt message failed.\n")
+		fmt.Fprint(w, "")
+		return
+	}
+
+	b, err := Decrypt(wx.currentBlock, string(emsg.Encrypt))
+	if err != nil {
+		fmt.Printf("handle messsage: decrypt by current key %s\n", err)
+		if wx.oldBlock != nil {
+			bo, err := Decrypt(wx.oldBlock, string(emsg.Encrypt))
+			if err != nil {
+				fmt.Printf("handle messsage: decrypt by old key %s\n", err)
+				fmt.Fprint(w, "")
+			}
+			b = bo
+		}
+		return
+	}
+
+	plaintext, appid, err := ParseEncryptMessage(b, wx.AppID)
+	if err != nil {
+		fmt.Printf("parse encrypt message %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+
+	var msg Message
+	if err := xml.Unmarshal(plaintext, &msg); err != nil {
+		fmt.Printf("handle message: unmarshal decrypt plaintext %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+
+	s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName), "加密消息应答")
+	if err != nil {
+		fmt.Printf("handle message: make response to reply %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+
+	block := wx.currentBlock
+	useOld := false
+OLD:
+	if useOld {
+		block = wx.oldBlock
+	}
+	ciphertext, err := Encrypt(block, s, appid)
+	if err != nil {
+		fmt.Printf("handle message: encrypt response %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+	eres := NewEncryptResponse(wx.AppID, wx.Token, nonce, ciphertext)
+	resp, err := xml.Marshal(eres)
+	if err != nil {
+		fmt.Printf("handle message marshal xml response %s\n", err)
+		fmt.Fprint(w, "")
+		return
+	}
+	fmt.Printf("%s\n", resp)
+	w.Header().Set("Content-Type", "application/xml; encoding=utf-8")
+	if _, err := fmt.Fprintf(w, "%s", resp); err != nil {
+		if useOld {
+			return
+		}
+		if wx.oldBlock != nil {
+			useOld = true
+			goto OLD
+		}
+	}
+}
+
 // HandleEvent 处理微信服务器验证token请求
 //	TODO:
 //	  1. 消息接收与转发队列
 //	  2. 应答队列
 func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%s\n", r)
+	fmt.Printf("nomal --- %s\n", r)
 	r.ParseForm()
 	signature := r.FormValue("signature")
-	msg_signature := r.FormValue("msg_signature")
-	if signature == "" && msg_signature == "" {
-		return
-	}
 	timestamp := r.FormValue("timestamp")
 	nonce := r.FormValue("nonce")
 
+	if !wx.VerfiyWxToken(timestamp, nonce, signature, "") {
+		// 只打印
+		fmt.Println("verify weixin event failed.")
+		return
+	}
 	switch r.Method {
 	// GET方法用于微信服务器配置验证
 	case "GET":
-		if !wx.VerfiyWxToken(timestamp, nonce, signature, "") {
-			// 只打印
-			fmt.Println("handle weixin message verfiy failed.")
+		echostr := r.FormValue("echostr")
+		fmt.Fprintf(w, "%s", echostr)
+	// POST方法接收明文事件
+	case "POST":
+		var msg Message
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Printf("handle event read context %s", err)
 			fmt.Fprint(w, "")
 			return
 		}
-		echostr := r.FormValue("echostr")
-		fmt.Fprintf(w, "%s", echostr)
-		// POST
-	case "POST":
-		if msg_signature != "" {
-			var msg EncryptMessage
-			if err := Unmarshal(r.Body, &msg, xml.Unmarshal); err != nil {
-				fmt.Printf("HandleMsg: %s\n", err)
-				return
-			}
-			if !wx.VerfiyWxToken(timestamp, nonce, msg_signature, string(msg.Encrypt)) {
-				fmt.Println("handle weixin message verfiy failed.")
-				fmt.Fprint(w, "")
-				return
-			}
-			block, err := NewCipherBlock(wx.EncodingAESKey)
-			if err != nil {
-				fmt.Printf("HandleMsg: cipher block %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-			bs, err := Decrypt(block, string(msg.Encrypt))
-			if err != nil {
-				fmt.Printf("HandleMsg: decrypt %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-
-			xmltext, appid, err := ParseEncryptMessage(bs, wx.AppID)
-			if err != nil {
-				fmt.Printf("HandleMsg: decrypt %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-
-			var msg1 Message
-			if err := xml.Unmarshal(xmltext, &msg1); err != nil {
-				fmt.Printf("HandleMsg: unmarshal plaintext %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-
-			s, err := newExampleMsg(string(msg1.ToUserName), string(msg1.FromUserName))
-			if err != nil {
-				fmt.Printf("HandleMsg: make msg %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-
-			ctext, err := Encrypt(block, s, appid)
-			if err != nil {
-				fmt.Printf("HandleMsg: encrypt %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-			eres := NewEncryptResponse(wx.AppID, wx.Token, nonce, ctext)
-			resp, err := xml.Marshal(eres)
-			if err != nil {
-				fmt.Printf("HandleMsg: encrypt %s\n", err)
-				fmt.Fprint(w, "success")
-				return
-			}
-			fmt.Printf("%s\n", resp)
-			w.Header().Set("Content-Type", "application/xml; encoding=utf-8")
-			fmt.Fprintf(w, "%s", resp)
+		defer r.Body.Close()
+		if err := xml.Unmarshal(body, &msg); err != nil {
+			fmt.Printf("handle event parse xml %s\n", err)
+			fmt.Fprint(w, "")
 			return
 		}
-
-		var msg Message
-		if err := Unmarshal(r.Body, &msg, xml.Unmarshal); err != nil {
-			fmt.Printf("HandleMsg: %s\n", err)
-			return
-		}
-		fmt.Printf("%#v\n", msg)
+		fmt.Printf("message: -----\n%#v\n", msg)
 		fmt.Println("------")
-		s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName))
+		s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName), "回复应答消息")
 		if err != nil {
-			fmt.Printf("HandleMsg: %s\n", err)
-			fmt.Fprint(w, "success")
+			fmt.Printf("handle event new message for reply %s\n", err)
+			fmt.Fprint(w, "")
 			return
 		}
 		fmt.Printf("%s\n", s)
@@ -296,7 +355,11 @@ func (wx *WeiXin) GetCallBackIP() (*CallBackIP, error) {
 		return nil, fmt.Errorf("get callback ip address of weixin: %s", err)
 	}
 	var ips CallBackIP
-	if err = Unmarshal(res.Body, &ips, json.Unmarshal); err != nil {
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("get callback ip read body: %s", err)
+	}
+	if err = xml.Unmarshal(b, &ips); err != nil {
 		return nil, fmt.Errorf("get callback ip address of weixin: %s", err)
 	}
 	return &ips, nil

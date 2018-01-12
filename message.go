@@ -136,13 +136,13 @@ type SendLocationInfo struct {
 	Poiname CDATA `xml:",omitempty"`
 }
 
-func newExampleMsg(from, to string) (string, error) {
+func newExampleMsg(from, to, content string) (string, error) {
 	msg := &Message{
 		ToUserName:   CDATA(to),
 		FromUserName: CDATA(from),
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "text",
-		Content:      "欢迎关注！",
+		Content:      CDATA(content),
 	}
 	b, err := xml.Marshal(msg)
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 func TestWx(t *testing.T) {
 	wx, err := New("key.xml")
 	if err != nil {
-		log.Fatalf("%s\n", err)
+		log.Fatalf("---- %s\n", err)
 	}
 	fmt.Printf("%#v\n", wx)
 
@@ -25,7 +25,7 @@ func TestWx(t *testing.T) {
 	t.Run("Menu", func(t *testing.T) {
 		m, err := wx.GetMenu(wx.accessToken)
 		if err != nil {
-			log.Fatalf("%s\n", err)
+			log.Fatalf("%#v\n", err)
 		}
 		fmt.Printf("%#v\n", m)
 	})
@@ -36,7 +36,9 @@ func TestWx(t *testing.T) {
 		}
 		fmt.Printf("%#v\n", self)
 	})
-	http.HandleFunc("/wx", wx.HandleEvent)
+	t.Run("Hanlde", func(t *testing.T) {
+		http.HandleFunc("/wx", wx.HandleEvent)
+	})
 	http.ListenAndServe(":80", nil)
 }
 

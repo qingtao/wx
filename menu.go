@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -160,9 +161,14 @@ func (wx *WeiXin) post(action string, menu interface{}) (*Response, error) {
 			wx.AppID, err)
 	}
 
+	b, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppID, err)
+	}
+	defer res.Body.Close()
 	var wxinfo Response
-	if err = Unmarshal(res.Body, &wxinfo, json.Unmarshal); err != nil {
-		return nil, fmt.Errorf("appid %s unmarshal response when create menu: %s", wx.AppID, err)
+	if err = json.Unmarshal(b, &wxinfo); err != nil {
+		return nil, fmt.Errorf("appid %s json unmarshal menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
@@ -180,9 +186,14 @@ func (wx *WeiXin) GetMenu(accessToken string) (*MenuOfConditional, error) {
 	if err != nil {
 		return nil, fmt.Errorf("appid %s get menu: %s", wx.AppID, err)
 	}
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppID, err)
+	}
+	defer res.Body.Close()
 
 	var menu MenuOfConditional
-	if err = Unmarshal(res.Body, &menu, json.Unmarshal); err != nil {
+	if err = json.Unmarshal(b, &menu); err != nil {
 		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", err)
 	}
 
@@ -198,9 +209,14 @@ func (wx *WeiXin) deleteMenu(action string) (*Response, error) {
 		return nil, fmt.Errorf("appid %s the request of delete menu %s",
 			wx.AppID, err)
 	}
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("appid %s del menu response read body: %s", wx.AppID, err)
+	}
+	defer res.Body.Close()
 
 	var wxinfo Response
-	if err := Unmarshal(res.Body, &wxinfo, json.Unmarshal); err != nil {
+	if err := json.Unmarshal(b, &wxinfo); err != nil {
 		return nil, fmt.Errorf("appid %s unmarshal response when delete menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
@@ -268,8 +284,14 @@ func (wx *WeiXin) TryCustomMenu(userId string) (*Menu, error) {
 		return nil, fmt.Errorf("appid %s trymatch custom menu: %s",
 			wx.AppID, err)
 	}
+	b, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("appid %s trymatch read body: %s", wx.AppID, err)
+	}
+	defer res.Body.Close()
+
 	var wxinfo Menu
-	if err = Unmarshal(res.Body, &wxinfo, json.Unmarshal); err != nil {
+	if err = json.Unmarshal(b, &wxinfo); err != nil {
 		return nil, fmt.Errorf("appid %s parse content when trymatch custom menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
@@ -296,8 +318,13 @@ func (wx *WeiXin) GetCurrentSelfMenu() (*CurrentSelfMenu, error) {
 		return nil, fmt.Errorf("appid %s get_current_selfmenu_info: %s",
 			wx.AppID, err)
 	}
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("appid %s getcurrentmenu read body: %s", wx.AppID, err)
+	}
+	defer res.Body.Close()
 	var menu CurrentSelfMenu
-	if err = Unmarshal(res.Body, &menu, json.Unmarshal); err != nil {
+	if err = json.Unmarshal(b, &menu); err != nil {
 		return nil, fmt.Errorf("appid %s get_current_selfmenu_info unmarshal response: %s", wx.AppID, err)
 	}
 	return &menu, nil

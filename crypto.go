@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"strconv"
 	"time"
 )
 
@@ -70,7 +71,7 @@ func randomString() string {
 }
 
 func NewEncryptResponse(appid, token, nonce, ciphertext string) *EncryptResponse {
-	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	if nonce == "" {
 		nonce = randomString()
 	}
