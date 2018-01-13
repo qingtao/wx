@@ -196,19 +196,15 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := wx.EncodingAESKey
-
+	retry := false
+USEOLDKEY:
+	if retry {
+		key = wx.OldEncodingAESKey
+	}
 	b, err := Decrypt(key, string(emsg.Encrypt))
 	if err != nil {
-		fmt.Printf("handle messsage: decrypt by current key %s\n", err)
-		if wx.OldEncodingAESKey != "" {
-			bo, err := Decrypt(wx.OldEncodingAESKey, string(emsg.Encrypt))
-			if err != nil {
-				fmt.Printf("handle messsage: decrypt by old key %s\n", err)
-				fmt.Fprint(w, "")
-			}
-			key = wx.OldEncodingAESKey
-			b = bo
-		}
+		fmt.Printf("decrypt by current key %s, retry old key %v\n", err, retry)
+		fmt.Fprint(w, "")
 		return
 	}
 
@@ -216,6 +212,10 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 
 	plaintext, appid, err := ParseEncryptMessage(b)
 	if err != nil {
+		if !retry {
+			retry = true
+			goto USEOLDKEY
+		}
 		fmt.Printf("parse encrypt message %s\n", err)
 		fmt.Fprint(w, "")
 		return
