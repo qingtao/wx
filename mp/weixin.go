@@ -203,20 +203,20 @@ USEOLDKEY:
 	}
 	b, err := Decrypt(key, string(emsg.Encrypt))
 	if err != nil {
-		fmt.Printf("decrypt by current key %s, retry old key %v\n", err, retry)
+		fmt.Printf("decrypt by current key %s\n", err)
 		fmt.Fprint(w, "")
 		return
 	}
 
-	fmt.Printf("decrypt emsg:\n%s\n", b)
+	//fmt.Printf("decrypt emsg:\n%s\n", b)
 
 	plaintext, appid, err := ParseEncryptMessage(b)
+	fmt.Printf("parse encrypt message %s\n, retry old key %v\n", err)
 	if err != nil {
 		if !retry {
 			retry = true
 			goto USEOLDKEY
 		}
-		fmt.Printf("parse encrypt message %s\n", err)
 		fmt.Fprint(w, "")
 		return
 	}
