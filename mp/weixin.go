@@ -155,6 +155,7 @@ func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature, ciphertext string) 
 	return false
 }
 
+// HandleEncryptEvent 处理微信推送的加密消息，如果msg_ignature为空或encrypt_type不是"aes", 使用HandleEvent继续处理后续响应
 func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("encrypt event --- %s\n", r)
 	r.ParseForm()
@@ -198,9 +199,6 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 	key := wx.EncodingAESKey
 	retry := false
 USEOLDKEY:
-	if retry {
-		key = wx.OldEncodingAESKey
-	}
 	b, err := Decrypt(key, string(emsg.Encrypt))
 	if err != nil {
 		fmt.Printf("decrypt by current key %s\n", err)
@@ -208,13 +206,18 @@ USEOLDKEY:
 		return
 	}
 
+	//解密失败乱码，不打印
 	//fmt.Printf("decrypt emsg:\n%s\n", b)
 
 	plaintext, appid, err := ParseEncryptMessage(b)
-	fmt.Printf("parse encrypt message %s\n, retry old key %v\n", err)
 	if err != nil {
+		fmt.Printf("parse encrypt message %s\n", err)
 		if !retry {
+			fmt.Printf("retry old key %v\n", retry)
 			retry = true
+			// set key to OldEncodingAESKey
+			key = wx.OldEncodingAESKey
+			// goto retry using old key
 			goto USEOLDKEY
 		}
 		fmt.Fprint(w, "")

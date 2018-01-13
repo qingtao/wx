@@ -64,10 +64,10 @@ func TestAES(t *testing.T) {
 	})
 	t.Run("Wxdec", func(t *testing.T) {
 		fmt.Println("---------------------")
-		x := `<xml><Encrypt><![CDATA[3RhKt6TtdQN/H0QfbKewT1KU4xpxD5LIv1BFRyUxjed9mMwcg//sqyBxVehYzVslCxiw6aW46vnH1FZyDD5VeRJY/yLfKqGWkQNfeysoY+THiUfpDEtFmlzcZMQSAiAeUurtfLSO2PLrgqDlzvtRGhA+ZM0/FCGAJChDydr/YoXa7QQ/Q84C6TvFXiA/7FjWnSP8OoGmlh+ahkdyy/qBI2OD0D2Jh6nUFolYL0p0e8cFC2VknBnOZ3zn60ZvWaPWiZFKgDQcmTk9wYKDuj1gMj0WfVGjKTjfzYQu9f7xzXxcFYGA2kLHRS6p9ArvyGnSMP7k5tuwU+2TIaz/2AU72gXb1zF/Lg/L3et1eh9F6oxr/rfVGoSm2HK8JSns9kyX3/jTa/2+J57wzMyKE13yJg==]]></Encrypt><MsgSignature><![CDATA[18c9d2b44c8fe1404bb3cb52999fefe06464cd7c]]></MsgSignature><TimeStamp>1515845750</TimeStamp><Nonce><![CDATA[973497014]]></Nonce></xml>`
+		x := `<xml><Encrypt><![CDATA[TYISAfTaVqF97gn22+BQrUfgsLLOEEH6juurAEnxB7v18hYtwxy8F133o3DT4II6Yn11f+DGd544MFOJrVWUrIzNwuLX/hukyKEVa+2UK+rEPqYGUzEN4hdrkOVEoMJXxcxuv7cHl6ECWwXxcPxN9bj66hcjPdkysScChT2qboYmcKBV3v9IkHHIIj+7cndiQAIxqtnV8GZoVXe6ohOu6+YANmhrlZMdUyL40b3Oo7r0DK8T73EGO2yM8nb3e4YRndeIoS85djHmpWlsq0Te0nUpq3LoFPg5/GgsDcJ6KIMKp0YGEC+5A8gljl0G9GFr6a2IcKVg4CZbACo7UxOcTuQOgZy+igvu72zKBCYVLYEyTMihIWVCBhVik7dXc5SXX5ZitCztTtaMSb46nwKi9oLOoTwefrEbUkyjjY9/NPE=]]></Encrypt><MsgSignature><![CDATA[f5a2973f63dc496cf274feeba722d808cbdc0587]]></MsgSignature><TimeStamp>1515850420</TimeStamp><Nonce><![CDATA[340471576]]></Nonce></xml>`
 		const (
 			tken = `tom00123`
-			key  = `JWmYm7qr5nMoAUwZRjGtBxmz3KA1tkAj3ykkR6q2B2C`
+			key  = `jWmYm7qr5nMoAUwZRjGtBxmz3KA1tkAj3ykkR6q2B2C`
 		)
 		var eres EncryptResponse
 		if err := xml.Unmarshal([]byte(x), &eres); err != nil {

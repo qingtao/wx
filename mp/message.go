@@ -105,13 +105,13 @@ type ScanCodeInfo struct {
 // Item in PicList
 type Item struct {
 	// PicMd5Sum 图片的MD5值，开发者若需要，可用于验证接收到图片
-	PicMd5Sum CDATA `xml:omitempty"`
+	PicMd5Sum CDATA `xml:",omitempty"`
 }
 
 // PicList 图片列表
 type PicList struct {
 	// PicMd5Sum 图片的MD5值，开发者若需要，可用于验证接收到图片
-	Item *Item `xml:"omitempty"`
+	Item *Item `xml:",omitempty"`
 }
 
 // SendPicsInfo 发送图片事件

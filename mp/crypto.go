@@ -17,11 +17,16 @@ import (
 )
 
 const (
-	wxNonceLength  = 10
+	//nonce参数位数
+	wxNonceLength = 10
+	//aes key长度
 	wxAESKeyLength = 32
-	wxAESHeader    = 16
-	wxAESLength    = 4
+	//正文前添加的随机字符位数
+	wxAESHeader = 16
+	//xml内容的大小网络长度
+	wxAESLength = 4
 
+	//用于随机数
 	randString = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
 )
 
@@ -78,10 +83,11 @@ func random(n int) []byte {
 
 // NewEncryptResponse 使用appid、token、nonce和ciphertext生成加密的应答消息
 func NewEncryptResponse(appid, token, timestamp, nonce, ciphertext string) *EncryptResponse {
-	// 获取当前的unix时间戳的字符串
+	// 如果timestamp为空，使用当前时间的unix时间戳设置timestamp
 	if timestamp == "" {
 		timestamp = strconv.FormatInt(time.Now().Unix(), 10)
 	}
+	// 如果nonce为空，生成随机字符串
 	if nonce == "" {
 		nonce = string(random(wxNonceLength))
 	}
@@ -96,17 +102,17 @@ func NewEncryptResponse(appid, token, timestamp, nonce, ciphertext string) *Encr
 	}
 }
 
-// Decrypt 解密
+// Decrypt 解密密文
 func Decrypt(key, ciphertext string) ([]byte, error) {
-	block, err := NewCipherBlock(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// base64解码
+	// base64解码密文
 	bs, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt ciphertext %s", err)
+	}
+
+	block, err := NewCipherBlock(key)
+	if err != nil {
+		return nil, err
 	}
 	// 加密文本长度必须大于BlockSize
 	if len(bs) < block.BlockSize() {
@@ -127,12 +133,14 @@ func Decrypt(key, ciphertext string) ([]byte, error) {
 func ParseEncryptMessage(b []byte) ([]byte, string, error) {
 	start := wxAESHeader + wxAESLength
 	buf := bytes.NewReader(b[wxAESHeader:start])
+	// pkcs7填充的位数
 	end := len(b) - int(b[len(b)-1])
 
 	var length int32
 	if err := binary.Read(buf, binary.BigEndian, &length); err != nil {
 		return nil, "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
 	}
+	// xml内容的长度
 	clen := int(length)
 	if clen < 0 || clen > end {
 		return nil, "", errors.New("read length of content failed")
@@ -141,7 +149,7 @@ func ParseEncryptMessage(b []byte) ([]byte, string, error) {
 	return b[start:xmlend], string(b[xmlend:end]), nil
 }
 
-// Encrypt 加密
+// Encrypt 加密普通文本
 func Encrypt(key, plaintext, appid string) (string, error) {
 	block, err := NewCipherBlock(key)
 	if err != nil {
@@ -153,12 +161,11 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
 		return "", fmt.Errorf("encrypt when read 16 rand bytes %s", err)
 	}
-	//rb := random(wxAESHeader)
-	// 取消息的网络长度4字节
 	var buf bytes.Buffer
 	if err := binary.Write(&buf, binary.BigEndian, int32(len(bs))); err != nil {
 		return "", fmt.Errorf("encrypt when generate len(plaintext)")
 	}
+	// 消息的网络长度4字节
 	length := make([]byte, wxAESLength)
 	copy(length, buf.Bytes())
 
@@ -173,15 +180,20 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	buf.Write([]byte(appid))
 	bs = buf.Bytes()
 
+	// pkcs7补齐位数
 	n := wxAESKeyLength - len(bs)%wxAESKeyLength
+	// 如果位数是32的整数,填充数32位
 	if n == 0 {
-		n = aes.BlockSize
+		n = wxNonceLength
 	}
+	// n个相同byte(n)
 	padding := bytes.Repeat([]byte{byte(n)}, n)
 	bs = append(bs, padding...)
 
+	// iv使用前16位随机的字符
 	iv := bs[:aes.BlockSize]
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(bs, bs)
+	// 返回base64编码的加密文本
 	return base64.StdEncoding.EncodeToString(bs), nil
 }
