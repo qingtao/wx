@@ -62,5 +62,33 @@ func TestAES(t *testing.T) {
 		}
 		fmt.Printf("dec xml and appid:\n%s\n%s\n", b, id)
 	})
+	t.Run("Wxdec", func(t *testing.T) {
+		fmt.Println("---------------------")
+		x := `<xml><Encrypt><![CDATA[3RhKt6TtdQN/H0QfbKewT1KU4xpxD5LIv1BFRyUxjed9mMwcg//sqyBxVehYzVslCxiw6aW46vnH1FZyDD5VeRJY/yLfKqGWkQNfeysoY+THiUfpDEtFmlzcZMQSAiAeUurtfLSO2PLrgqDlzvtRGhA+ZM0/FCGAJChDydr/YoXa7QQ/Q84C6TvFXiA/7FjWnSP8OoGmlh+ahkdyy/qBI2OD0D2Jh6nUFolYL0p0e8cFC2VknBnOZ3zn60ZvWaPWiZFKgDQcmTk9wYKDuj1gMj0WfVGjKTjfzYQu9f7xzXxcFYGA2kLHRS6p9ArvyGnSMP7k5tuwU+2TIaz/2AU72gXb1zF/Lg/L3et1eh9F6oxr/rfVGoSm2HK8JSns9kyX3/jTa/2+J57wzMyKE13yJg==]]></Encrypt><MsgSignature><![CDATA[18c9d2b44c8fe1404bb3cb52999fefe06464cd7c]]></MsgSignature><TimeStamp>1515845750</TimeStamp><Nonce><![CDATA[973497014]]></Nonce></xml>`
+		const (
+			tken = `tom00123`
+			key  = `jWmYm7qr5nMoAUwZRjGtBxmz3KA1tkAj3ykkR6q2B2C`
+		)
+		var eres EncryptResponse
+		if err := xml.Unmarshal([]byte(x), &eres); err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("%s\n", eres)
+		sign := Sign(tken, eres.TimeStamp, string(eres.Nonce), string(eres.Encrypt))
+		if sign != string(eres.MsgSignature) {
+			fmt.Printf("sign:\n%s\nmsg_sign:\n%s\n", sign, eres.MsgSignature)
+			log.Fatalln("invalid")
+		}
+		plaintext, err := Decrypt(key, string(eres.Encrypt))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("%s\n", plaintext)
+		b, id, err := ParseEncryptMessage(plaintext)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("eres xml and appid:\n%s\n%s\n", b, id)
 
+	})
 }

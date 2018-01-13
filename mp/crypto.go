@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	wxNonceLength = 10
-	wxAESHeader   = 16
-	wxAESLength   = 4
+	wxNonceLength  = 10
+	wxAESKeyLength = 32
+	wxAESHeader    = 16
+	wxAESLength    = 4
 
 	randString = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
 )
@@ -132,7 +133,11 @@ func ParseEncryptMessage(b []byte) ([]byte, string, error) {
 	if err := binary.Read(buf, binary.BigEndian, &length); err != nil {
 		return nil, "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
 	}
-	xmlend := start + int(length)
+	clen := int(length)
+	if clen < 0 || clen > end {
+		return nil, "", errors.New("read length of content failed")
+	}
+	xmlend := start + clen
 	return b[start:xmlend], string(b[xmlend:end]), nil
 }
 
@@ -168,14 +173,14 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	buf.Write([]byte(appid))
 	bs = buf.Bytes()
 
-	n := aes.BlockSize - len(bs)%aes.BlockSize
+	n := wxAESKeyLength - len(bs)%wxAESKeyLength
 	if n == 0 {
 		n = aes.BlockSize
 	}
 	padding := bytes.Repeat([]byte{byte(n)}, n)
 	bs = append(bs, padding...)
 
-	iv := []byte(key[:aes.BlockSize])
+	iv := bs[:aes.BlockSize]
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(bs, bs)
 	return base64.StdEncoding.EncodeToString(bs), nil
