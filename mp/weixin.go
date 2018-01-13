@@ -182,6 +182,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+	fmt.Printf("emsg:\n%s\n", body)
 	var emsg EncryptMessage
 	if err := xml.Unmarshal(body, &emsg); err != nil {
 		fmt.Printf("handle encrypt message parse xml content first %s\n", err)
@@ -211,12 +212,15 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("decrypt emsg:\n%s\n", b)
+
 	plaintext, appid, err := ParseEncryptMessage(b, wx.AppID)
 	if err != nil {
 		fmt.Printf("parse encrypt message %s\n", err)
 		fmt.Fprint(w, "")
 		return
 	}
+	fmt.Printf("decrypt emsg:\n%s\n%s\n", plaintext, appid)
 
 	var msg Message
 	if err := xml.Unmarshal(plaintext, &msg); err != nil {

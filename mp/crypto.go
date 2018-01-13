@@ -163,7 +163,7 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	if n != 0 {
 		bs = append(bs, random(n)...)
 	}
-	ciphertext := make([]byte, aes.BlockSize+len(bs))
+	ciphertext := make([]byte, len(bs))
 	iv := random(aes.BlockSize)
 	/*
 		iv := ciphertext[:aes.BlockSize]

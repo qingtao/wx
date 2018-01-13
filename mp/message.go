@@ -64,7 +64,7 @@ type Message struct {
 	// 自定义菜单事件
 
 	// MenuID 点击菜单跳转链接时的时间推送, Event: VIEW
-	MenuID string `xml:,omitempty"`
+	MenuID string `xml:",omitempty"`
 	// ScanCodeInfo: 扫描事件推送
 	//   1. Event是scancode_push：
 	//	   扫码推事件的事件推送
