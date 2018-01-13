@@ -4,26 +4,29 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/xml"
+	"errors"
 	"fmt"
-	"io"
 	mrand "math/rand"
 	"strconv"
 	"time"
 )
 
 const (
-	wxNonce       = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
 	wxNonceLength = 10
 	wxAESHeader   = 16
 	wxAESLength   = 4
+
+	randString = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
 )
 
 // NewAESKey根据生成AES密钥
 func NewCipherBlock(encodingAESKey string) (cipher.Block, error) {
+	if len(encodingAESKey) != 43 {
+		return nil, errors.New("EncodingAESKey must be 43 bytes")
+	}
 	// AES密钥： AESKey=Base64_Decode(EncodingAESKey + “=”), EncodingAESKey尾部填充一个字符的“=”, 用Base64_Decode生成32个字节的AESKey；
 	key, err := base64.StdEncoding.DecodeString(encodingAESKey + "=")
 	if err != nil {
@@ -36,7 +39,7 @@ func NewCipherBlock(encodingAESKey string) (cipher.Block, error) {
 	return block, nil
 }
 
-// MessageWithAES 加密消息格式
+// EncryptMessage微信服务器推送的加密消息
 type EncryptMessage struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`
@@ -46,7 +49,7 @@ type EncryptMessage struct {
 	Encrypt CDATA
 }
 
-// ReponseWithAES 响应微信服务器的格式
+// EncryptResponse响应微信服务器的格式
 type EncryptResponse struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`
@@ -60,21 +63,24 @@ type EncryptResponse struct {
 	Nonce CDATA
 }
 
-func randomString() string {
-	bs := make([]byte, wxNonceLength)
+// random生成随机字符串
+func random(n int) []byte {
+	bs := make([]byte, n)
 	mrand.Seed(time.Now().UnixNano())
 	for i := 0; i < len(bs); i++ {
-		b := wxNonce[mrand.Intn(len(bs))]
-		bs[i] = b
+		bs[i] = randString[mrand.Intn(len(randString))]
 	}
-	return string(bs)
+	return bs
 }
 
+// NewEncryptResponse 使用appid、token、nonce和ciphertext生成加密的应答消息
 func NewEncryptResponse(appid, token, nonce, ciphertext string) *EncryptResponse {
+	// 获取当前的unix时间戳的字符串
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	if nonce == "" {
-		nonce = randomString()
+		nonce = string(random(wxNonceLength))
 	}
+	// 生成签名
 	signature := Sign(token, timestamp, nonce, ciphertext)
 
 	return &EncryptResponse{
@@ -86,24 +92,33 @@ func NewEncryptResponse(appid, token, nonce, ciphertext string) *EncryptResponse
 }
 
 // Decrypt 解密
-func Decrypt(block cipher.Block, ciphertext string) ([]byte, error) {
+func Decrypt(key, ciphertext string) ([]byte, error) {
+	block, err := NewCipherBlock(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// base64解码
 	bs, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("decrypt: ciphertext %s", err)
+		return nil, fmt.Errorf("decrypt ciphertext %s", err)
 	}
+	// 加密文本长度必须大于BlockSize
 	if len(bs) < block.BlockSize() {
-		return nil, fmt.Errorf("decrypt: ciphertext too short: %d", len(bs))
+		return nil, fmt.Errorf("ciphertext too short: %d", len(bs))
 	}
+	// 加密文本的长度必须是BlockSize的正数倍
 	if len(bs)%block.BlockSize() != 0 {
-		return nil, fmt.Errorf("decrypt: ciphertext is not a multiple of the block size")
+		return nil, fmt.Errorf("ciphertext is not a multiple of the block size")
 	}
 	iv := bs[:aes.BlockSize]
-	bs = bs[aes.BlockSize:]
+	//bs = bs[aes.BlockSize:]
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(bs, bs)
 	return bs, nil
 }
 
+// ParseEncryptMessage 解析解密后的加密消息的主体和appid
 func ParseEncryptMessage(b []byte, appid string) ([]byte, string, error) {
 	xmlStart := wxAESHeader + wxAESLength
 	buf := bytes.NewReader(b[wxAESHeader:xmlStart])
@@ -117,14 +132,14 @@ func ParseEncryptMessage(b []byte, appid string) ([]byte, string, error) {
 }
 
 // Encrypt 加密
-func Encrypt(block cipher.Block, plaintext string, appid string) (string, error) {
+func Encrypt(key, plaintext, appid string) (string, error) {
+	block, err := NewCipherBlock(key)
+	if err != nil {
+		return "", err
+	}
 	// 随机16位字符
 	bs := []byte(plaintext)
-	rb := make([]byte, wxAESHeader)
-	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
-		return "", fmt.Errorf("encrypt when read 16 rand bytes %s", err)
-	}
-	fmt.Println("rb", len(rb))
+	rb := random(wxAESHeader)
 	// 取消息的网络长度4字节
 	var buf bytes.Buffer
 	if err := binary.Write(&buf, binary.BigEndian, int32(len(bs))); err != nil {
@@ -146,18 +161,18 @@ func Encrypt(block cipher.Block, plaintext string, appid string) (string, error)
 
 	n := aes.BlockSize - len(bs)%aes.BlockSize
 	if n != 0 {
-		padding := make([]byte, n)
-		if _, err := io.ReadFull(rand.Reader, padding); err != nil {
-			return "", fmt.Errorf("encrypt when add padding %s", err)
-		}
-		bs = append(bs, padding...)
+		bs = append(bs, random(n)...)
 	}
 	ciphertext := make([]byte, aes.BlockSize+len(bs))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", fmt.Errorf("encrypt when read iv %s", err)
-	}
+	iv := random(aes.BlockSize)
+	/*
+		iv := ciphertext[:aes.BlockSize]
+		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+			return "", fmt.Errorf("encrypt when read iv %s", err)
+		}
+	*/
 	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext[aes.BlockSize:], bs)
+	//mode.CryptBlocks(ciphertext[aes.BlockSize:], bs)
+	mode.CryptBlocks(ciphertext, bs)
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }

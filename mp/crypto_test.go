@@ -21,26 +21,15 @@ const (
 )
 
 func TestAES(t *testing.T) {
-	block, err := NewCipherBlock(encodingAESKey)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	s := ""
 	t.Run("enc", func(t *testing.T) {
-		ciphertext, err := Encrypt(block, to_xml, appid)
+		ciphertext, err := Encrypt(encodingAESKey, to_xml, appid)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		s = ciphertext
 		fmt.Printf("%s\n", ciphertext)
 	})
 	t.Run("dec", func(t *testing.T) {
-		ss := from_xml
-		if s != "" {
-			ss = s
-		}
-
-		plaintext, err := Decrypt(block, ss)
+		plaintext, err := Decrypt(encodingAESKey, from_xml)
 		if err != nil {
 			log.Fatalln(err)
 		}

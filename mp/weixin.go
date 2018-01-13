@@ -2,7 +2,6 @@
 package weixin
 
 import (
-	"crypto/cipher"
 	"crypto/sha1"
 	"encoding/json"
 	"encoding/xml"
@@ -42,9 +41,6 @@ type WeiXin struct {
 	accessToken string
 	// access_token的有效期
 	expires int
-	// aes加解密
-	currentBlock cipher.Block
-	oldBlock     cipher.Block
 }
 
 // New 读取filename文件, 生成新的*WeiXin, 失败时返回error非空
@@ -56,20 +52,6 @@ func New(filename string) (*WeiXin, error) {
 	var wx WeiXin
 	if err = xml.Unmarshal(b, &wx); err != nil {
 		return nil, fmt.Errorf("read weixin config: %s", err)
-	}
-	if wx.EncodingAESKey != "" {
-		block, err := NewCipherBlock(wx.EncodingAESKey)
-		if err != nil {
-			return nil, err
-		}
-		wx.currentBlock = block
-	}
-	if wx.OldEncodingAESKey != "" {
-		block, err := NewCipherBlock(wx.OldEncodingAESKey)
-		if err != nil {
-			return nil, err
-		}
-		wx.oldBlock = block
 	}
 	return &wx, nil
 }
@@ -192,11 +174,6 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("verify event from weixin failed")
 		return
 	}
-	if wx.currentBlock == nil {
-		fmt.Printf("EncodingAESKey not exists")
-		fmt.Fprint(w, "")
-		return
-	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -217,15 +194,18 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := Decrypt(wx.currentBlock, string(emsg.Encrypt))
+	key := wx.EncodingAESKey
+
+	b, err := Decrypt(key, string(emsg.Encrypt))
 	if err != nil {
 		fmt.Printf("handle messsage: decrypt by current key %s\n", err)
-		if wx.oldBlock != nil {
-			bo, err := Decrypt(wx.oldBlock, string(emsg.Encrypt))
+		if wx.OldEncodingAESKey != "" {
+			bo, err := Decrypt(wx.OldEncodingAESKey, string(emsg.Encrypt))
 			if err != nil {
 				fmt.Printf("handle messsage: decrypt by old key %s\n", err)
 				fmt.Fprint(w, "")
 			}
+			key = wx.OldEncodingAESKey
 			b = bo
 		}
 		return
@@ -252,13 +232,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	block := wx.currentBlock
-	useOld := false
-OLD:
-	if useOld {
-		block = wx.oldBlock
-	}
-	ciphertext, err := Encrypt(block, s, appid)
+	ciphertext, err := Encrypt(key, s, appid)
 	if err != nil {
 		fmt.Printf("handle message: encrypt response %s\n", err)
 		fmt.Fprint(w, "")
@@ -273,15 +247,7 @@ OLD:
 	}
 	fmt.Printf("%s\n", resp)
 	w.Header().Set("Content-Type", "application/xml; encoding=utf-8")
-	if _, err := fmt.Fprintf(w, "%s", resp); err != nil {
-		if useOld {
-			return
-		}
-		if wx.oldBlock != nil {
-			useOld = true
-			goto OLD
-		}
-	}
+	fmt.Fprintf(w, "%s", resp)
 }
 
 // HandleEvent 处理微信服务器验证token请求

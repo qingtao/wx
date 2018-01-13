@@ -18,26 +18,25 @@ func TestWx(t *testing.T) {
 	}
 	fmt.Printf("%#v\n", wx)
 
-	if err = wx.GetAccessToken(); err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Printf("access_token: %s\nexpires_in: %d\n", wx.accessToken, wx.expires)
-	t.Run("Menu", func(t *testing.T) {
+	t.Run("Token", func(t *testing.T) {
+		if err = wx.GetAccessToken(); err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Printf("access_token: %s\nexpires_in: %d\n", wx.accessToken, wx.expires)
 		m, err := wx.GetMenu(wx.accessToken)
 		if err != nil {
 			log.Fatalf("%#v\n", err)
 		}
 		fmt.Printf("%#v\n", m)
-	})
-	t.Run("Self", func(t *testing.T) {
+		//
 		self, err := wx.GetCurrentSelfMenu()
 		if err != nil {
 			log.Fatalf("%s\n", err)
 		}
 		fmt.Printf("%#v\n", self)
 	})
-	t.Run("Hanlde", func(t *testing.T) {
-		http.HandleFunc("/wx", wx.HandleEvent)
+	t.Run("Handle", func(t *testing.T) {
+		http.HandleFunc("/wx", wx.HandleEncryptEvent)
 	})
 	http.ListenAndServe(":80", nil)
 }
