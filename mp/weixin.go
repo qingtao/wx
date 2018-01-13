@@ -214,7 +214,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("decrypt emsg:\n%s\n", b)
 
-	plaintext, appid, err := ParseEncryptMessage(b, wx.AppID)
+	plaintext, appid, err := ParseEncryptMessage(b)
 	if err != nil {
 		fmt.Printf("parse encrypt message %s\n", err)
 		fmt.Fprint(w, "")
@@ -242,7 +242,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "")
 		return
 	}
-	eres := NewEncryptResponse(wx.AppID, wx.Token, nonce, ciphertext)
+	eres := NewEncryptResponse(wx.AppID, wx.Token, timestamp, nonce, ciphertext)
 	resp, err := xml.Marshal(eres)
 	if err != nil {
 		fmt.Printf("handle message marshal xml response %s\n", err)

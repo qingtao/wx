@@ -34,8 +34,9 @@ func TestAES(t *testing.T) {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		fmt.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
 
-		b, id, err := ParseEncryptMessage(plaintext, appid)
+		b, id, err := ParseEncryptMessage(plaintext)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -54,7 +55,8 @@ func TestAES(t *testing.T) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		b, id, err := ParseEncryptMessage(plaintext, appid)
+		fmt.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
+		b, id, err := ParseEncryptMessage(plaintext)
 		if err != nil {
 			log.Fatalln(err)
 		}

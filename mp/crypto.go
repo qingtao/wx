@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	mrand "math/rand"
 	"strconv"
 	"time"
@@ -74,9 +76,11 @@ func random(n int) []byte {
 }
 
 // NewEncryptResponse 使用appid、token、nonce和ciphertext生成加密的应答消息
-func NewEncryptResponse(appid, token, nonce, ciphertext string) *EncryptResponse {
+func NewEncryptResponse(appid, token, timestamp, nonce, ciphertext string) *EncryptResponse {
 	// 获取当前的unix时间戳的字符串
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	if timestamp == "" {
+		timestamp = strconv.FormatInt(time.Now().Unix(), 10)
+	}
 	if nonce == "" {
 		nonce = string(random(wxNonceLength))
 	}
@@ -119,16 +123,17 @@ func Decrypt(key, ciphertext string) ([]byte, error) {
 }
 
 // ParseEncryptMessage 解析解密后的加密消息的主体和appid
-func ParseEncryptMessage(b []byte, appid string) ([]byte, string, error) {
-	xmlStart := wxAESHeader + wxAESLength
-	buf := bytes.NewReader(b[wxAESHeader:xmlStart])
+func ParseEncryptMessage(b []byte) ([]byte, string, error) {
+	start := wxAESHeader + wxAESLength
+	buf := bytes.NewReader(b[wxAESHeader:start])
+	end := len(b) - int(b[len(b)-1])
 
 	var length int32
 	if err := binary.Read(buf, binary.BigEndian, &length); err != nil {
 		return nil, "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
 	}
-	xmlEnd := xmlStart + int(length)
-	return b[xmlStart:xmlEnd], string(b[xmlEnd : xmlEnd+len(appid)]), nil
+	xmlend := start + int(length)
+	return b[start:xmlend], string(b[xmlend:end]), nil
 }
 
 // Encrypt 加密
@@ -139,7 +144,11 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	}
 	// 随机16位字符
 	bs := []byte(plaintext)
-	rb := random(wxAESHeader)
+	rb := make([]byte, wxAESHeader)
+	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
+		return "", fmt.Errorf("encrypt when read 16 rand bytes %s", err)
+	}
+	//rb := random(wxAESHeader)
 	// 取消息的网络长度4字节
 	var buf bytes.Buffer
 	if err := binary.Write(&buf, binary.BigEndian, int32(len(bs))); err != nil {
@@ -160,19 +169,14 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	bs = buf.Bytes()
 
 	n := aes.BlockSize - len(bs)%aes.BlockSize
-	if n != 0 {
-		bs = append(bs, random(n)...)
+	if n == 0 {
+		n = aes.BlockSize
 	}
-	ciphertext := make([]byte, len(bs))
-	iv := random(aes.BlockSize)
-	/*
-		iv := ciphertext[:aes.BlockSize]
-		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-			return "", fmt.Errorf("encrypt when read iv %s", err)
-		}
-	*/
+	padding := bytes.Repeat([]byte{byte(n)}, n)
+	bs = append(bs, padding...)
+
+	iv := []byte(key[:aes.BlockSize])
 	mode := cipher.NewCBCEncrypter(block, iv)
-	//mode.CryptBlocks(ciphertext[aes.BlockSize:], bs)
-	mode.CryptBlocks(ciphertext, bs)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
+	mode.CryptBlocks(bs, bs)
+	return base64.StdEncoding.EncodeToString(bs), nil
 }
