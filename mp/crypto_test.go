@@ -60,4 +60,5 @@ func TestAES(t *testing.T) {
 		}
 		fmt.Printf("dec xml and appid:\n%s\n%s\n", b, id)
 	})
+
 }
