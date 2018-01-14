@@ -129,24 +129,29 @@ func Decrypt(key, ciphertext string) ([]byte, error) {
 	return bs, nil
 }
 
-// ParseEncryptMessage 解析解密后的加密消息的主体和appid
-func ParseEncryptMessage(b []byte) ([]byte, string, error) {
-	start := wxAESHeader + wxAESLength
-	buf := bytes.NewReader(b[wxAESHeader:start])
-	// pkcs7填充的位数
-	end := len(b) - int(b[len(b)-1])
+// ParseDecryptMessage 解析解密后的加密消息的主体和appid
+func ParseDecryptMessage(b []byte) ([]byte, string, error) {
+	textstart := wxAESHeader + wxAESLength
+	buf := bytes.NewReader(b[wxAESHeader:textstart])
+	// PKCS#7填充字符长度
+	padlen := int(b[len(b)-1])
+	// 如果padding长度超过32，返回错误
+	if padlen < 0 || padlen > wxAESKeyLength {
+		return nil, "", fmt.Errorf("error read length of padding %d", padlen)
+	}
+	padstart := len(b) - padlen
 
 	var length int32
 	if err := binary.Read(buf, binary.BigEndian, &length); err != nil {
-		return nil, "", fmt.Errorf("decrypt: ciphertext when read plaintext length")
+		return nil, "", fmt.Errorf("read content of xml length failed")
 	}
 	// xml内容的长度
-	clen := int(length)
-	if clen < 0 || clen > end {
+	xmllen := int(length)
+	appidstart := textstart + xmllen
+	if xmllen < 0 || appidstart > padstart {
 		return nil, "", errors.New("read length of content failed")
 	}
-	xmlend := start + clen
-	return b[start:xmlend], string(b[xmlend:end]), nil
+	return b[textstart:appidstart], string(b[appidstart:padstart]), nil
 }
 
 // Encrypt 加密普通文本
@@ -180,7 +185,7 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	buf.Write([]byte(appid))
 	bs = buf.Bytes()
 
-	// pkcs7补齐位数
+	// PKCS#7补齐位数
 	n := wxAESKeyLength - len(bs)%wxAESKeyLength
 	// 如果位数是32的整数,填充数32位
 	if n == 0 {

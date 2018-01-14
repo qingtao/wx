@@ -209,7 +209,7 @@ USEOLDKEY:
 	//解密失败乱码，不打印
 	//fmt.Printf("decrypt emsg:\n%s\n", b)
 
-	plaintext, appid, err := ParseEncryptMessage(b)
+	plaintext, appid, err := ParseDecryptMessage(b)
 	if err != nil {
 		fmt.Printf("parse encrypt message %s\n", err)
 		if !retry {
