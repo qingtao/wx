@@ -22,9 +22,9 @@ type Message struct {
 	// Content 文本消息内容
 	Content CDATA `xml:",omitempty"`
 	// PicURL 图片链接（由系统生成）
-	PicURL CDATA `xml:"PicUrl,omitempty"`
+	PicUrl CDATA `xml:",omitempty"`
 	// MediaId 图片消息媒体id，可以调用多媒体文件下载接口拉取数据
-	MediaID CDATA `xml:"Mediaid,omitempty"`
+	MediaId CDATA `xml:",omitempty"`
 	// Foramt 语音格式，如amr，speex等
 	Format CDATA `xml:",omitempty"`
 	// Recognition 语音识别结果，UTF8编码
@@ -33,9 +33,9 @@ type Message struct {
 	// 可以调用多媒体文件下载接口拉取数据。
 	ThumbMediaId CDATA `xml:",omitempty"`
 	// LocationX 地理位置维度
-	LocationX float64 `xml:"Location_X,omitempty"`
+	Location_X float64 `xml:",omitempty"`
 	// LocationY 地理位置经度
-	LocationY float64 `xml:"Location_Y,omitempty"`
+	Location_Y float64 `xml:",omitempty"`
 	// Scale 地图缩放大小
 	Scale int64 `xml:",omitempty"`
 	// Label 地理位置信息
@@ -97,9 +97,9 @@ func (c CDATA) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // ScanCodeInfo扫描事件推送
 type ScanCodeInfo struct {
 	// ScanType
-	ScanType CDATA `xml:"ScanType,omitempty"`
+	ScanType CDATA `xml:",omitempty"`
 	// ScanResult
-	ScanResult CDATA `xml:"ScanResult,omitempty"`
+	ScanResult CDATA `xml:",omitempty"`
 }
 
 // Item in PicList
@@ -125,9 +125,9 @@ type SendPicsInfo struct {
 // SendLocationInfo 弹出地理位置选择器的事件推送
 type SendLocationInfo struct {
 	// LocationX X坐标信息
-	LocationX CDATA `xml:"Location_X,omitempty"`
+	Location_X CDATA `xml:",omitempty"`
 	// LocationY Y坐标信息
-	LocationY CDATA `xml:"Location_Y,omitempty"`
+	Location_Y CDATA `xml:",omitempty"`
 	// Scale 精度，可理解为精度或者比例尺、越精细的话 scale越高
 	Scale CDATA `xml:",omitempty"`
 	// Lable 地理位置的字符串信息

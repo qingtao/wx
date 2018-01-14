@@ -165,8 +165,8 @@ func TestMsg(t *testing.T) {
 		CreateTime:   1515567192,
 		MsgId:        6509311524975152819,
 		MsgType:      "location",
-		LocationX:    46.682068,
-		LocationY:    217.085495,
+		Location_X:   46.682068,
+		Location_Y:   217.085495,
 		Scale:        16,
 		Label:        "a省b市c区d路1号)",
 	}

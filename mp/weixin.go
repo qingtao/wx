@@ -12,12 +12,7 @@ import (
 )
 
 const (
-	wxConfigHost           = "Host"
-	wxConfigAppID          = "AppID"
-	wxConfigAppSecret      = "AppSecret"
-	wxConfigToken          = "Token"
-	wxConfigEncodingAESKey = "EncodingAESKey"
-	wxEncryptType          = "aes"
+	wxEncryptType = "aes"
 )
 
 // WeiXin 微信公众号配置参数
