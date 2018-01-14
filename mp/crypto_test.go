@@ -64,7 +64,7 @@ func TestAES(t *testing.T) {
 	})
 	t.Run("Wxdec", func(t *testing.T) {
 		fmt.Println("---------------------")
-		x := `<xml><Encrypt><![CDATA[TYISAfTaVqF97gn22+BQrUfgsLLOEEH6juurAEnxB7v18hYtwxy8F133o3DT4II6Yn11f+DGd544MFOJrVWUrIzNwuLX/hukyKEVa+2UK+rEPqYGUzEN4hdrkOVEoMJXxcxuv7cHl6ECWwXxcPxN9bj66hcjPdkysScChT2qboYmcKBV3v9IkHHIIj+7cndiQAIxqtnV8GZoVXe6ohOu6+YANmhrlZMdUyL40b3Oo7r0DK8T73EGO2yM8nb3e4YRndeIoS85djHmpWlsq0Te0nUpq3LoFPg5/GgsDcJ6KIMKp0YGEC+5A8gljl0G9GFr6a2IcKVg4CZbACo7UxOcTuQOgZy+igvu72zKBCYVLYEyTMihIWVCBhVik7dXc5SXX5ZitCztTtaMSb46nwKi9oLOoTwefrEbUkyjjY9/NPE=]]></Encrypt><MsgSignature><![CDATA[f5a2973f63dc496cf274feeba722d808cbdc0587]]></MsgSignature><TimeStamp>1515850420</TimeStamp><Nonce><![CDATA[340471576]]></Nonce></xml>`
+		x := `<xml><Encrypt><![CDATA[TYISAfTaVqF97gn22+BQrYOtJcf4GU360iTvjzdLBAp800rTdKFOj+nUhAJKUJ82YA5zbRHPZ/F6P8ok8dYMWhu2zBWwv+xIWlERDlaIKp2CKzbSa5FZ2gl1EWrZzn/GDkKEuDIEY7GyjJaVfiduMg8N6oBlxx6xYz0tuyNlVWoAbgDvIxYYJwkN7CRADuD0IPTE7mkY4fGc56fxFc2D58vnsIOQ8ys28m81fhHZ4g0UjcJKJXofj0N5QTJxO9RmHVP39+b0KcevUacw4Dmi8c72/S0IqIl/eBgZVG4IVVPgpii/7gojmbFDHFi9/RTA4nwQJAe9JxNx+76RvnmXvfCW8PigFlvtsJvY31Nv/ZB97ZxIUiJYk2Y48JoH3wZEs/9NKzDHOaOT+SvRFLaIWeD9DUayXXG5g0vEfugrZPM=]]></Encrypt><MsgSignature><![CDATA[2a57bca3d93100e42599d453d97ebde9f5a57eca]]></MsgSignature><TimeStamp>1515926128</TimeStamp><Nonce><![CDATA[143125540]]></Nonce></xml>`
 		const (
 			tken = `tom00123`
 			key  = `jWmYm7qr5nMoAUwZRjGtBxmz3KA1tkAj3ykkR6q2B2C`
