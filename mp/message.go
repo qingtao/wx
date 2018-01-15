@@ -2,7 +2,6 @@ package weixin
 
 import (
 	"encoding/xml"
-	"fmt"
 	"time"
 )
 
@@ -144,18 +143,18 @@ type ResponseMessage struct {
 	CreateTime   int64
 	MsgType      CDATA
 	Content      CDATA     `xml:",omitempty"`
-	Image        Media     `xml:",omitempty"`
-	Voice        Media     `xml:",omitempty"`
-	Video        Media     `xml:",omitempty"`
-	Music        Music     `xml:",omitempty"`
+	Image        *Media    `xml:",omitempty"`
+	Voice        *Media    `xml:",omitempty"`
+	Video        *Media    `xml:",omitempty"`
+	Music        *Music    `xml:",omitempty"`
 	ArticleCount int       `xml:",omitempty"`
-	Articles     []Article `xml:",omitempty"`
+	Articles     *Articles `xml:",omitempty"`
 }
 
 // Media 多媒体类型的：image/voice/video，MediaId必须
 type Media struct {
-	MediaId     CDATA
-	Titile      CDATA `xml:",omitempty"`
+	MediaId     CDATA `xml:",omitempty"`
+	Title       CDATA `xml:",omitempty"`
 	Description CDATA `xml:",omitempty"`
 }
 
@@ -168,9 +167,8 @@ type Music struct {
 	ThumbMediaId CDATA
 }
 
-// Article 图文消息, 需要和ArticleCount一起设置
-type Article struct {
-	Item ArticleItem `xml:"item,omitempty"`
+type Articles struct {
+	Item []*ArticleItem `xml:",omitempty"`
 }
 
 // ArticleItem 图文消息的项目
@@ -181,87 +179,78 @@ type ArticleItem struct {
 	Url         CDATA
 }
 
-func NewTextMessage(ToUserName, FromUserName, Content string) ([]byte, error) {
+func NewTextMessage(ToUserName, FromUserName CDATA, Content string) ([]byte, error) {
 	msg := &ResponseMessage{
 		ToUserName:   ToUserName,
 		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "text",
-		Content:      Content,
+		Content:      CDATA(Content),
 	}
 	return xml.Marshal(msg)
 }
 
-func NewImageMessage(ToUserName, FromUserName, MediaId string) ([]byte, error) {
-	msg = &ResponseMessage{
-		ToUserName:   CDATA(ToUserName),
-		FromUserName: CDATA(FromUserName),
+func NewImageMessage(ToUserName, FromUserName CDATA, MediaId string) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "image",
-		Image:        Media{MediaId: MediaId},
+		Image:        &Media{MediaId: CDATA(MediaId)},
 	}
 	return xml.Marshal(msg)
 }
 
-func NewVoiceMessage(ToUserName, FromUserName, MediaId string) ([]byte, error) {
-	msg = &ResponseMessage{
-		ToUserName:   CDATA(ToUserName),
-		FromUserName: CDATA(FromUserName),
+func NewVoiceMessage(ToUserName, FromUserName CDATA, MediaId string) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "voice",
-		Voice:        Media{MediaId: MediaId},
-	}
+		Voice:        &Media{MediaId: CDATA(MediaId)}}
 	return xml.Marshal(msg)
 }
 
-func NewVideoMessage(ToUserName, FromUserName, MediaId, Title, Description string) ([]byte, error) {
-	msg = &ResponseMessage{
-		ToUserName:   CDATA(ToUserName),
-		FromUserName: CDATA(FromUserName),
+func NewVideoMessage(ToUserName, FromUserName CDATA, MediaId, Title, Description string) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "video",
-		Video: Media{
-			MediaId:     MediaId,
-			Title:       Title,
-			Description: Description,
+		Video: &Media{
+			MediaId:     CDATA(MediaId),
+			Title:       CDATA(Title),
+			Description: CDATA(Description),
 		},
 	}
 	return xml.Marshal(msg)
 }
 
-func NewMusicMessage(ToUserName, FromUserName, Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) ([]byte, error) {
-	msg = &ResponseMessage{
-		ToUserName:   CDATA(ToUserName),
-		FromUserName: CDATA(FromUserName),
+func NewMusicMessage(ToUserName, FromUserName CDATA, Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "music",
-		Music: Music{
-			Titile:       Title,
-			Description:  Description,
-			MusicURL:     MusicURL,
-			HQMusicUrl:   HQMusicUrl,
-			ThumbMediaId: ThumbMediaId,
+		Music: &Music{
+			Titile:       CDATA(Title),
+			Description:  CDATA(Description),
+			MusicURL:     CDATA(MusicURL),
+			HQMusicUrl:   CDATA(HQMusicUrl),
+			ThumbMediaId: CDATA(ThumbMediaId),
 		},
 	}
 	return xml.Marshal(msg)
 }
 
-func NewArticleMessage(ToUserName, FromUserName, Articles []Article) ([]byte, error) {
-	msg = &ResponseMessage{
-		ToUserName:   CDATA(ToUserName),
-		FromUserName: CDATA(FromUserName),
+func NewArticleMessage(ToUserName, FromUserName CDATA, Articles *Articles) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
-		MsgType:      "music",
-		ArticleCount: len(Articles),
+		MsgType:      "news",
+		ArticleCount: len(Articles.Item),
 		Articles:     Articles,
 	}
-	return xml.marshal(msg)
-}
-
-func newExampleMsg(from, to, content string) (string, error) {
-	b, err := NewTextMessage(to, from, content)
-	if err != nil {
-		return "", fmt.Errorf("marshal the message to xml: %s", err)
-	}
-	return string(b), nil
+	return xml.Marshal(msg)
 }

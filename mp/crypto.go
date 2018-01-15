@@ -155,19 +155,18 @@ func ParseDecryptMessage(b []byte) ([]byte, string, error) {
 }
 
 // Encrypt 加密普通文本
-func Encrypt(key, plaintext, appid string) (string, error) {
+func Encrypt(key, appid string, plaintext []byte) (string, error) {
 	block, err := NewCipherBlock(key)
 	if err != nil {
 		return "", err
 	}
 	// 随机16位字符
-	bs := []byte(plaintext)
 	rb := make([]byte, wxAESHeader)
 	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
 		return "", fmt.Errorf("encrypt when read 16 rand bytes %s", err)
 	}
 	var buf bytes.Buffer
-	if err := binary.Write(&buf, binary.BigEndian, int32(len(bs))); err != nil {
+	if err := binary.Write(&buf, binary.BigEndian, int32(len(plaintext))); err != nil {
 		return "", fmt.Errorf("encrypt when generate len(plaintext)")
 	}
 	// 消息的网络长度4字节
@@ -180,25 +179,25 @@ func Encrypt(key, plaintext, appid string) (string, error) {
 	// 写入4位网络长度
 	buf.Write(length)
 	// 写入消息文本
-	buf.Write(bs)
+	buf.Write(plaintext)
 	// 写入appid
 	buf.Write([]byte(appid))
-	bs = buf.Bytes()
+	plaintext = buf.Bytes()
 
 	// PKCS#7补齐位数
-	n := wxAESKeyLength - len(bs)%wxAESKeyLength
+	n := wxAESKeyLength - len(plaintext)%wxAESKeyLength
 	// 如果位数是32的整数,填充数32位
 	if n == 0 {
 		n = wxNonceLength
 	}
 	// n个相同byte(n)
 	padding := bytes.Repeat([]byte{byte(n)}, n)
-	bs = append(bs, padding...)
+	plaintext = append(plaintext, padding...)
 
 	// iv使用前16位随机的字符
-	iv := bs[:aes.BlockSize]
+	iv := plaintext[:aes.BlockSize]
 	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(bs, bs)
+	mode.CryptBlocks(plaintext, plaintext)
 	// 返回base64编码的加密文本
-	return base64.StdEncoding.EncodeToString(bs), nil
+	return base64.StdEncoding.EncodeToString(plaintext), nil
 }

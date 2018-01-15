@@ -227,14 +227,14 @@ USEOLDKEY:
 		return
 	}
 
-	s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName), "加密消息应答")
+	b, err = NewTextMessage(msg.FromUserName, msg.ToUserName, "加密消息应答")
 	if err != nil {
 		fmt.Printf("handle message: make response to reply %s\n", err)
 		fmt.Fprint(w, "")
 		return
 	}
 
-	ciphertext, err := Encrypt(key, s, appid)
+	ciphertext, err := Encrypt(key, appid, b)
 	if err != nil {
 		fmt.Printf("handle message: encrypt response %s\n", err)
 		fmt.Fprint(w, "")
@@ -290,15 +290,15 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Printf("message: -----\n%#v\n", msg)
 		fmt.Println("------")
-		s, err := newExampleMsg(string(msg.ToUserName), string(msg.FromUserName), "回复应答消息")
+		b, err := NewTextMessage(msg.FromUserName, msg.ToUserName, "回复应答消息")
 		if err != nil {
 			fmt.Printf("handle event new message for reply %s\n", err)
 			fmt.Fprint(w, "")
 			return
 		}
-		fmt.Printf("%s\n", s)
+		fmt.Printf("%s\n", b)
 		w.Header().Set("Content-Type", "application/xml; encoding=utf-8")
-		fmt.Fprintf(w, "%s", s)
+		fmt.Fprintf(w, "%s", b)
 	}
 }
 

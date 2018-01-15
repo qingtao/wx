@@ -24,7 +24,7 @@ const (
 func TestAES(t *testing.T) {
 	t.Run("enc", func(t *testing.T) {
 		fmt.Printf("enc to_xml:\n%s\n", to_xml)
-		ciphertext, err := Encrypt(encodingAESKey, to_xml, appid)
+		ciphertext, err := Encrypt(encodingAESKey, appid, []byte(to_xml))
 		if err != nil {
 			log.Fatalln(err)
 		}
