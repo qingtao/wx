@@ -22,7 +22,7 @@ type WeiXin struct {
 	Host string
 	// 微信开发者ID
 	// AppID 应用ID
-	AppID string
+	AppId string
 	// AppSecret 应用密钥
 	AppSecret string
 	// Token 令牌
@@ -55,10 +55,10 @@ func New(filename string) (*WeiXin, error) {
 func CreateWeiXinFile(filename string) error {
 	wx := &WeiXin{
 		Host:           "api.weixin.qq.com",
-		AppID:          "appid",
+		AppId:          "appid",
 		AppSecret:      "appsecret",
 		Token:          "token",
-		EncodingAESKey: "-",
+		EncodingAESKey: "1234567890123456789012345678901234567890123",
 	}
 	b, err := xml.MarshalIndent(wx, "", "  ")
 	if err != nil {
@@ -99,11 +99,11 @@ type Token struct {
 func (wx *WeiXin) GetAccessToken() error {
 	// 组合URL
 	uri := fmt.Sprintf("https://%s/%s?grant_type=%s&appid=%s&secret=%s",
-		wx.Host, WxTokenPath, WxGrantType, wx.AppID, wx.AppSecret)
+		wx.Host, WxTokenPath, WxGrantType, wx.AppId, wx.AppSecret)
 	res, err := http.Get(uri)
 	if err != nil {
 		return fmt.Errorf("appid %s get access_token: %s",
-			wx.AppID, err)
+			wx.AppId, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -114,12 +114,12 @@ func (wx *WeiXin) GetAccessToken() error {
 	var t Token
 	if err = json.Unmarshal(b, &t); err != nil {
 		return fmt.Errorf("appid %s unmarshal response json: %s",
-			wx.AppID, err)
+			wx.AppId, err)
 	}
 
 	// 检查t.AccessToken为空，返回nil，错误代码和错误信息
 	if t.AccessToken == "" {
-		return fmt.Errorf("appid %s get access_token errcode: %d, errmsg: %s", wx.AppID, t.ErrCode, t.ErrMsg)
+		return fmt.Errorf("appid %s get access_token errcode: %d, errmsg: %s", wx.AppId, t.ErrCode, t.ErrMsg)
 	}
 	wx.accessToken = t.AccessToken
 	wx.expires = t.ExpiresIn
@@ -240,7 +240,7 @@ USEOLDKEY:
 		fmt.Fprint(w, "")
 		return
 	}
-	eres := NewEncryptResponse(wx.AppID, wx.Token, timestamp, nonce, ciphertext)
+	eres := NewEncryptResponse(wx.AppId, wx.Token, timestamp, nonce, ciphertext)
 	resp, err := xml.Marshal(eres)
 	if err != nil {
 		fmt.Printf("handle message marshal xml response %s\n", err)
