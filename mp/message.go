@@ -45,7 +45,7 @@ type Message struct {
 	// Description 消息描述
 	Description CDATA `xml:",omitempty"`
 	// URL 消息链接
-	URL CDATA `xml:"Url,omitempty"`
+	Url CDATA `xml:",omitempty"`
 	// Event 事件类型，subscribe(订阅)、unsubscribe(取消订阅)
 	Event CDATA `xml:",omitempty"`
 	// EventKey 事件KEY值，qrscene_为前缀，后面为二维码的参数值
@@ -64,7 +64,7 @@ type Message struct {
 	// 自定义菜单事件
 
 	// MenuID 点击菜单跳转链接时的时间推送, Event: VIEW
-	MenuID string `xml:",omitempty"`
+	MenuId string `xml:",omitempty"`
 	// ScanCodeInfo: 扫描事件推送
 	//   1. Event是scancode_push：
 	//	   扫码推事件的事件推送
@@ -136,15 +136,130 @@ type SendLocationInfo struct {
 	Poiname CDATA `xml:",omitempty"`
 }
 
-func newExampleMsg(from, to, content string) (string, error) {
-	msg := &Message{
-		ToUserName:   CDATA(to),
-		FromUserName: CDATA(from),
+// ResponseMessage 被动回复微信消息事件的消息结构
+type ResponseMessage struct {
+	XMLName      xml.Name `xml:"xml"`
+	ToUserName   CDATA
+	FromUserName CDATA
+	CreateTime   int64
+	MsgType      CDATA
+	Content      CDATA     `xml:",omitempty"`
+	Image        Media     `xml:",omitempty"`
+	Voice        Media     `xml:",omitempty"`
+	Video        Media     `xml:",omitempty"`
+	Music        Music     `xml:",omitempty"`
+	ArticleCount int       `xml:",omitempty"`
+	Articles     []Article `xml:",omitempty"`
+}
+
+// Media 多媒体类型的：image/voice/video，MediaId必须
+type Media struct {
+	MediaId     CDATA
+	Titile      CDATA `xml:",omitempty"`
+	Description CDATA `xml:",omitempty"`
+}
+
+// Music 回复音乐消息
+type Music struct {
+	Titile       CDATA `xml:",omitempty"`
+	Description  CDATA `xml:",omitempty"`
+	MusicURL     CDATA `xml:",omitempty"`
+	HQMusicUrl   CDATA `xml:",omitempty"`
+	ThumbMediaId CDATA
+}
+
+// Article 图文消息, 需要和ArticleCount一起设置
+type Article struct {
+	Item ArticleItem `xml:"item,omitempty"`
+}
+
+// ArticleItem 图文消息的项目
+type ArticleItem struct {
+	Title       CDATA
+	Description CDATA
+	PicUrl      CDATA
+	Url         CDATA
+}
+
+func NewTextMessage(ToUserName, FromUserName, Content string) ([]byte, error) {
+	msg := &ResponseMessage{
+		ToUserName:   ToUserName,
+		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "text",
-		Content:      CDATA(content),
+		Content:      Content,
 	}
-	b, err := xml.Marshal(msg)
+	return xml.Marshal(msg)
+}
+
+func NewImageMessage(ToUserName, FromUserName, MediaId string) ([]byte, error) {
+	msg = &ResponseMessage{
+		ToUserName:   CDATA(ToUserName),
+		FromUserName: CDATA(FromUserName),
+		CreateTime:   time.Now().Unix(),
+		MsgType:      "image",
+		Image:        Media{MediaId: MediaId},
+	}
+	return xml.Marshal(msg)
+}
+
+func NewVoiceMessage(ToUserName, FromUserName, MediaId string) ([]byte, error) {
+	msg = &ResponseMessage{
+		ToUserName:   CDATA(ToUserName),
+		FromUserName: CDATA(FromUserName),
+		CreateTime:   time.Now().Unix(),
+		MsgType:      "voice",
+		Voice:        Media{MediaId: MediaId},
+	}
+	return xml.Marshal(msg)
+}
+
+func NewVideoMessage(ToUserName, FromUserName, MediaId, Title, Description string) ([]byte, error) {
+	msg = &ResponseMessage{
+		ToUserName:   CDATA(ToUserName),
+		FromUserName: CDATA(FromUserName),
+		CreateTime:   time.Now().Unix(),
+		MsgType:      "video",
+		Video: Media{
+			MediaId:     MediaId,
+			Title:       Title,
+			Description: Description,
+		},
+	}
+	return xml.Marshal(msg)
+}
+
+func NewMusicMessage(ToUserName, FromUserName, Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) ([]byte, error) {
+	msg = &ResponseMessage{
+		ToUserName:   CDATA(ToUserName),
+		FromUserName: CDATA(FromUserName),
+		CreateTime:   time.Now().Unix(),
+		MsgType:      "music",
+		Music: Music{
+			Titile:       Title,
+			Description:  Description,
+			MusicURL:     MusicURL,
+			HQMusicUrl:   HQMusicUrl,
+			ThumbMediaId: ThumbMediaId,
+		},
+	}
+	return xml.Marshal(msg)
+}
+
+func NewArticleMessage(ToUserName, FromUserName, Articles []Article) ([]byte, error) {
+	msg = &ResponseMessage{
+		ToUserName:   CDATA(ToUserName),
+		FromUserName: CDATA(FromUserName),
+		CreateTime:   time.Now().Unix(),
+		MsgType:      "music",
+		ArticleCount: len(Articles),
+		Articles:     Articles,
+	}
+	return xml.marshal(msg)
+}
+
+func newExampleMsg(from, to, content string) (string, error) {
+	b, err := NewTextMessage(to, from, content)
 	if err != nil {
 		return "", fmt.Errorf("marshal the message to xml: %s", err)
 	}
