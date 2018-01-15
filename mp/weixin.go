@@ -327,7 +327,7 @@ func (wx *WeiXin) GetCallBackIP() (*CallBackIP, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get callback ip read body: %s", err)
 	}
-	if err = xml.Unmarshal(b, &ips); err != nil {
+	if err = json.Unmarshal(b, &ips); err != nil {
 		return nil, fmt.Errorf("get callback ip address of weixin: %s", err)
 	}
 	return &ips, nil

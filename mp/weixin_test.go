@@ -30,6 +30,14 @@ func TestWx(t *testing.T) {
 			log.Fatalf("%s\n", err)
 		}
 		fmt.Printf("%#v\n", self)
+
+		ip, err := wx.GetCallBackIP()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		for k, v := range ip.IPList {
+			fmt.Printf("%3d: %#v\n", k, v)
+		}
 	})
 	t.Run("Handle", func(t *testing.T) {
 		http.HandleFunc("/wx", wx.HandleEncryptEvent)
