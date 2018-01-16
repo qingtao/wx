@@ -138,7 +138,7 @@ type Menu struct {
 }
 
 // Response 微信返回的响应信息, 用在只返回状态的请求
-type Response struct {
+type MenuResponse struct {
 	// ErrCode 自定义菜单错误码
 	ErrCode int `json:"errcode,omitempty"`
 	// ErrMsg 自定义菜单错误信息
@@ -147,7 +147,7 @@ type Response struct {
 }
 
 // post 提交自定义菜单操作
-func (wx *WeiXin) post(action string, menu interface{}) (*Response, error) {
+func (wx *WeiXin) post(action string, menu interface{}) (*MenuResponse, error) {
 	uri := fmt.Sprintf("https://%s/%s/%s?access_token=%s",
 		wx.Host, WxMenuPath, action, wx.accessToken)
 	b, err := json.Marshal(menu)
@@ -166,7 +166,7 @@ func (wx *WeiXin) post(action string, menu interface{}) (*Response, error) {
 		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppId, err)
 	}
 	defer res.Body.Close()
-	var wxinfo Response
+	var wxinfo MenuResponse
 	if err = json.Unmarshal(b, &wxinfo); err != nil {
 		return nil, fmt.Errorf("appid %s json unmarshal menu: %s", wx.AppId, err)
 	}
@@ -174,7 +174,7 @@ func (wx *WeiXin) post(action string, menu interface{}) (*Response, error) {
 }
 
 // CreateMenu 创建自定义菜单
-func (wx *WeiXin) CreateMenu(menu *Menu) (*Response, error) {
+func (wx *WeiXin) CreateMenu(menu *Menu) (*MenuResponse, error) {
 	return wx.post(WxMenuCreate, menu)
 }
 
@@ -201,7 +201,7 @@ func (wx *WeiXin) GetMenu(accessToken string) (*MenuOfConditional, error) {
 }
 
 // deleteMenu 提交删除自定义菜单请求
-func (wx *WeiXin) deleteMenu(menuid string) (*Response, error) {
+func (wx *WeiXin) deleteMenu(menuid string) (*MenuResponse, error) {
 	action := WxMenuDelete
 	if menuid != "" {
 		action = WxMenuDelConditional
@@ -228,7 +228,7 @@ func (wx *WeiXin) deleteMenu(menuid string) (*Response, error) {
 	}
 	defer res.Body.Close()
 
-	var wxinfo Response
+	var wxinfo MenuResponse
 	if err := json.Unmarshal(b, &wxinfo); err != nil {
 		return nil, fmt.Errorf("appid %s unmarshal response when delete menu: %s", wx.AppId, err)
 	}
@@ -236,7 +236,7 @@ func (wx *WeiXin) deleteMenu(menuid string) (*Response, error) {
 }
 
 // DeleteMenu 删除自定义菜单
-func (wx *WeiXin) DeleteMenu() (*Response, error) {
+func (wx *WeiXin) DeleteMenu() (*MenuResponse, error) {
 	return wx.deleteMenu("")
 }
 
@@ -266,17 +266,17 @@ type MatchRule struct {
 }
 
 // CreateCustomMenu 创建个性化菜单
-func (wx *WeiXin) CreateCustomMenu(menu *ConditionalMenu) (*Response, error) {
+func (wx *WeiXin) CreateConditionalMenu(menu *ConditionalMenu) (*MenuResponse, error) {
 	return wx.post(WxMenuAddConditional, menu)
 }
 
 // DeleteCustomMenu删除个性化菜单
-func (wx *WeiXin) DeleteCustomMenu(menuid string) (*Response, error) {
+func (wx *WeiXin) DeleteConditionalMenu(menuid string) (*MenuResponse, error) {
 	return wx.deleteMenu(menuid)
 }
 
 // TryCustomMenu 测试个性化菜单匹配结果
-func (wx *WeiXin) TryCustomMenu(userid string) (*Menu, error) {
+func (wx *WeiXin) TryConditionalMenu(userid string) (*Menu, error) {
 	uri := fmt.Sprintf("https://%s/%s/%s?access_token=%s", wx.Host,
 		WxMenuPath, WxMenuTryMatch, wx.accessToken)
 	s := `{"user_id":"` + userid + `"}`
