@@ -1,4 +1,4 @@
-package weixin
+package mp
 
 import (
 	"bytes"

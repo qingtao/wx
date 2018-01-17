@@ -1,4 +1,4 @@
-package weixin
+package mp
 
 import (
 	"encoding/xml"
@@ -160,97 +160,105 @@ type Media struct {
 
 // Music 回复音乐消息
 type Music struct {
-	Titile       CDATA `xml:",omitempty"`
+	Title        CDATA `xml:",omitempty"`
 	Description  CDATA `xml:",omitempty"`
 	MusicURL     CDATA `xml:",omitempty"`
 	HQMusicUrl   CDATA `xml:",omitempty"`
-	ThumbMediaId CDATA
+	ThumbMediaId CDATA `xml:",omitempty"`
 }
 
+// Articles 图文消息
 type Articles struct {
-	Item []*ArticleItem `xml:",omitempty"`
+	Item []*Article `xml:"item,omitempty"`
 }
 
-// ArticleItem 图文消息的项目
-type ArticleItem struct {
-	Title       CDATA
-	Description CDATA
-	PicUrl      CDATA
-	Url         CDATA
+// ArticleItem 图文消息
+type Article struct {
+	Title       CDATA `xml:",omitempty"`
+	Description CDATA `xml:",omitempty"`
+	PicUrl      CDATA `xml:",omitempty"`
+	Url         CDATA `xml:",omitempty"`
 }
 
-func NewTextMessage(ToUserName, FromUserName CDATA, Content string) ([]byte, error) {
-	msg := &ResponseMessage{
+// NewArticle 新建图文文章
+func NewArticle(Title, Description, PicUrl, Url string) *Article {
+	return &Article{CDATA(Title), CDATA(Description), CDATA(PicUrl), CDATA(Url)}
+}
+
+// NewTextMessage 创建被动回复文本消息
+func NewTextMessage(ToUserName, FromUserName CDATA, Content string) *ResponseMessage {
+	return &ResponseMessage{
 		ToUserName:   ToUserName,
 		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "text",
 		Content:      CDATA(Content),
 	}
-	return xml.Marshal(msg)
 }
 
-func NewImageMessage(ToUserName, FromUserName CDATA, MediaId string) ([]byte, error) {
+// NewMedia 新的多媒体消息，包含：image/voice/video
+func NewMedia(MediaId, Title, Description string) *Media {
+	return &Media{CDATA(MediaId), CDATA(Title), CDATA(Description)}
+}
+
+// NewMusic 新音乐消息结构
+func NewMusic(Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) *Music {
+	return &Music{CDATA(Title), CDATA(Description), CDATA(MusicURL), CDATA(HQMusicUrl), CDATA(ThumbMediaId)}
+}
+
+// newMediaMessage 新的多媒体消息
+func newMediaMessage(ToUserName, FromUserName CDATA, MsgType string, media *Media) *ResponseMessage {
 	msg := &ResponseMessage{
 		ToUserName:   ToUserName,
 		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
-		MsgType:      "image",
-		Image:        &Media{MediaId: CDATA(MediaId)},
+		MsgType:      CDATA(MsgType),
 	}
-	return xml.Marshal(msg)
-}
-
-func NewVoiceMessage(ToUserName, FromUserName CDATA, MediaId string) ([]byte, error) {
-	msg := &ResponseMessage{
-		ToUserName:   ToUserName,
-		FromUserName: FromUserName,
-		CreateTime:   time.Now().Unix(),
-		MsgType:      "voice",
-		Voice:        &Media{MediaId: CDATA(MediaId)}}
-	return xml.Marshal(msg)
-}
-
-func NewVideoMessage(ToUserName, FromUserName CDATA, MediaId, Title, Description string) ([]byte, error) {
-	msg := &ResponseMessage{
-		ToUserName:   ToUserName,
-		FromUserName: FromUserName,
-		CreateTime:   time.Now().Unix(),
-		MsgType:      "video",
-		Video: &Media{
-			MediaId:     CDATA(MediaId),
-			Title:       CDATA(Title),
-			Description: CDATA(Description),
-		},
+	switch MsgType {
+	case "image":
+		msg.Image = media
+	case "voice":
+		msg.Voice = media
+	case "video":
+		msg.Video = media
 	}
-	return xml.Marshal(msg)
+	return msg
 }
 
-func NewMusicMessage(ToUserName, FromUserName CDATA, Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) ([]byte, error) {
-	msg := &ResponseMessage{
+// NewImageMessage 创建被动回复图片消息
+func NewImageMessage(ToUserName, FromUserName CDATA, media *Media) *ResponseMessage {
+	return newMediaMessage(ToUserName, FromUserName, "image", media)
+}
+
+// NewVoiceMessage 创建被动回复语音消息
+func NewVoiceMessage(ToUserName, FromUserName CDATA, media *Media) *ResponseMessage {
+	return newMediaMessage(ToUserName, FromUserName, "voice", media)
+}
+
+// NewVideoMessage 创建被动回复视频消息, meida需要MediaId, title, description
+func NewVideoMessage(ToUserName, FromUserName CDATA, media *Media) *ResponseMessage {
+	return newMediaMessage(ToUserName, FromUserName, "video", media)
+}
+
+// NewMusicMessage 创建被动回复音乐消息
+func NewMusicMessage(ToUserName, FromUserName CDATA, music *Music) *ResponseMessage {
+	return &ResponseMessage{
 		ToUserName:   ToUserName,
 		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "music",
-		Music: &Music{
-			Titile:       CDATA(Title),
-			Description:  CDATA(Description),
-			MusicURL:     CDATA(MusicURL),
-			HQMusicUrl:   CDATA(HQMusicUrl),
-			ThumbMediaId: CDATA(ThumbMediaId),
-		},
+		Music:        music,
 	}
-	return xml.Marshal(msg)
 }
 
-func NewArticleMessage(ToUserName, FromUserName CDATA, Articles *Articles) ([]byte, error) {
-	msg := &ResponseMessage{
+// NewArticlesMessage 创建被动回复图文消息
+func NewArticlesMessage(ToUserName, FromUserName CDATA, articles []*Article) *ResponseMessage {
+	return &ResponseMessage{
 		ToUserName:   ToUserName,
 		FromUserName: FromUserName,
 		CreateTime:   time.Now().Unix(),
 		MsgType:      "news",
-		ArticleCount: len(Articles.Item),
-		Articles:     Articles,
+		ArticleCount: len(articles),
+		Articles:     &Articles{articles},
 	}
-	return xml.Marshal(msg)
 }

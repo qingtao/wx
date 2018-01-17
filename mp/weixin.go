@@ -1,5 +1,5 @@
 // Package main used for weixin (mp.weixin.qq.com)
-package weixin
+package mp
 
 import (
 	"crypto/sha1"
@@ -227,7 +227,8 @@ USEOLDKEY:
 		return
 	}
 
-	b, err = NewTextMessage(msg.FromUserName, msg.ToUserName, "加密消息应答")
+	rmsg := NewTextMessage(msg.FromUserName, msg.ToUserName, "加密消息应答")
+	b, err = xml.Marshal(rmsg)
 	if err != nil {
 		fmt.Printf("handle message: make response to reply %s\n", err)
 		fmt.Fprint(w, "")
@@ -290,7 +291,8 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Printf("message: -----\n%#v\n", msg)
 		fmt.Println("------")
-		b, err := NewTextMessage(msg.FromUserName, msg.ToUserName, "回复应答消息")
+		rmsg := NewTextMessage(msg.FromUserName, msg.ToUserName, "回复应答消息")
+		b, err := xml.Marshal(rmsg)
 		if err != nil {
 			fmt.Printf("handle event new message for reply %s\n", err)
 			fmt.Fprint(w, "")

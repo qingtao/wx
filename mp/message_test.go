@@ -1,9 +1,8 @@
-package weixin
+package mp
 
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"log"
 	"reflect"
 	"testing"
@@ -47,10 +46,10 @@ func TestButton(t *testing.T) {
 		log.Fatalln(err)
 	}
 	for i, button := range cb.Button {
-		fmt.Printf("%d - name: %s\n", i, button.Name)
+		log.Printf("%d - name: %s\n", i, button.Name)
 		if button.SubButton != nil {
 			for j, sub := range button.SubButton {
-				fmt.Printf("- sub_button: %d\n", j)
+				log.Printf("- sub_button: %d\n", j)
 				out("-- name: %s\n", sub.Name)
 				out("-- type: %s\n", sub.Type)
 				out("-- key: %s\n", sub.Key)
@@ -73,7 +72,7 @@ func TestButton(t *testing.T) {
 
 func out(f, s string) {
 	if s != "" {
-		fmt.Printf(f, s)
+		log.Printf(f, s)
 	}
 }
 
@@ -105,8 +104,8 @@ func TestXML(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("%s\n", b)
-	fmt.Println("---------------")
+	log.Printf("%s\n", b)
+	log.Println("---------------")
 	ss := `<xml>
   <ToUserName><![CDATA[toUser]]></ToUserName>
   <FromUserName><![CDATA[fromUser]]></FromUserName>
@@ -118,13 +117,13 @@ func TestXML(t *testing.T) {
 	if err := xml.Unmarshal([]byte(ss), &msg); err != nil {
 		log.Fatalln("%s\n", err)
 	}
-	fmt.Println("weixin event:")
-	fmt.Printf("-- ToUserName: %s\n", msg.ToUserName)
-	fmt.Printf("-- ToUserName: %v\n", reflect.TypeOf(msg.ToUserName))
-	fmt.Printf("-- FromUserName: %s\n", msg.FromUserName)
-	fmt.Printf("-- CreateTime: %d\n", msg.CreateTime)
-	fmt.Printf("-- Event: %s\n", msg.Event)
-	fmt.Printf("-- EventKey: %s\n", msg.EventKey)
+	log.Println("weixin event:")
+	log.Printf("-- ToUserName: %s\n", msg.ToUserName)
+	log.Printf("-- ToUserName: %v\n", reflect.TypeOf(msg.ToUserName))
+	log.Printf("-- FromUserName: %s\n", msg.FromUserName)
+	log.Printf("-- CreateTime: %d\n", msg.CreateTime)
+	log.Printf("-- Event: %s\n", msg.Event)
+	log.Printf("-- EventKey: %s\n", msg.EventKey)
 }
 
 func TestMsg(t *testing.T) {
@@ -144,80 +143,77 @@ func TestMsg(t *testing.T) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("%s\n", bj)
+		log.Printf("%s\n", bj)
 	*/
 	b, err := xml.MarshalIndent(info, "", "  ")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("%s\n", b)
+	log.Printf("%s\n", b)
 	var msg Message
 	if err = xml.Unmarshal(b, &msg); err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("%s\n", msg.MsgType)
+	log.Printf("%s\n", msg.MsgType)
 }
 
 func TestResMsg(t *testing.T) {
+	var msgs = make([]*ResponseMessage, 0)
 	t.Run("text", func(t *testing.T) {
-		b, err := NewTextMessage("to_user", "from_user", "text_msg")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("text:\n%s\n", b)
+		msg := NewTextMessage("to_user", "from_user", "text_msg")
+		/*
+			b, err := xml.MarshalIndent(msg, "", "  ")
+			if err != nil {
+				log.Fatalln(err)
+			}
+		*/
+		msgs = append(msgs, msg)
 	})
 	t.Run("image", func(t *testing.T) {
-		b, err := NewImageMessage("to_user", "from_user", "image_id")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("image:\n%s\n", b)
+		image := NewMedia("image_id", "", "")
+		msg := NewImageMessage("to_user", "from_user", image)
+		msgs = append(msgs, msg)
 	})
 	t.Run("voice", func(t *testing.T) {
-		b, err := NewVoiceMessage("to_user", "from_user", "voice_id")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("voice:\n%s\n", b)
+		voice := NewMedia("voice_id", "", "")
+		msg := NewVoiceMessage("to_user", "from_user", voice)
+		msgs = append(msgs, msg)
 	})
 	t.Run("video", func(t *testing.T) {
-		b, err := NewVideoMessage("to_user", "from_user", "video_id",
-			"video_title", "video_desc")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("video:\n%s\n", b)
+		video := NewMedia("video_id", "video_title", "video_desc")
+		msg := NewVideoMessage("to_user", "from_user", video)
+		msgs = append(msgs, msg)
 	})
 	t.Run("music", func(t *testing.T) {
-		b, err := NewMusicMessage("to_user", "from_user",
-			"music_title", "music_desc", "music_url",
-			"music_hqurl", "music_thumb")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("music:\n%s\n", b)
+		music := NewMusic("music_title", "music_desc", "music_url", "music_hqurl", "music_thumb")
+		msg := NewMusicMessage("to_user", "from_user", music)
+		msgs = append(msgs, msg)
 	})
 	t.Run("article", func(t *testing.T) {
-		as := &Articles{
-			[]*ArticleItem{
-				{
-					"a1_title",
-					"a1_desc",
-					"a1_picurl",
-					"a1_url",
-				},
-				{
-					"a2_title",
-					"a2_desc",
-					"a2_picurl",
-					"a2_url",
-				},
+		as := []*Article{
+			{
+				"a1_title",
+				"a1_desc",
+				"a1_picurl",
+				"a1_url",
+			},
+			{
+				"a2_title",
+				"a2_desc",
+				"a2_picurl",
+				"a2_url",
 			},
 		}
-		b, err := NewArticleMessage("to_user", "from_user", as)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("article:\n%s\n", b)
+		msg := NewArticlesMessage("to_user", "from_user", as)
+		msgs = append(msgs, msg)
 	})
+
+	for i := 0; i < len(msgs); i++ {
+		b, err := xml.MarshalIndent(msgs[i], "", "  ")
+		if err != nil {
+			log.Fatalf("%3d xml MarshalIndent %s", i, err)
+		}
+		log.Printf("%3d:\n %s\n------------------------\n", i, b)
+
+	}
 }

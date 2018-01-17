@@ -1,7 +1,6 @@
-package weixin
+package mp
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"testing"
@@ -12,31 +11,31 @@ func TestWx(t *testing.T) {
 	if err != nil {
 		log.Fatalf("---- %s\n", err)
 	}
-	fmt.Printf("%#v\n", wx)
+	log.Printf("%#v\n", wx)
 
 	t.Run("Token", func(t *testing.T) {
 		if err = wx.GetAccessToken(); err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("access_token: %s\nexpires_in: %d\n", wx.accessToken, wx.expires)
+		log.Printf("access_token: %s\nexpires_in: %d\n", wx.accessToken, wx.expires)
 		m, err := wx.GetMenu(wx.accessToken)
 		if err != nil {
 			log.Fatalf("%#v\n", err)
 		}
-		fmt.Printf("%#v\n", m)
+		log.Printf("%#v\n", m)
 		//
 		self, err := wx.GetCurrentSelfMenu()
 		if err != nil {
 			log.Fatalf("%s\n", err)
 		}
-		fmt.Printf("%#v\n", self)
+		log.Printf("%#v\n", self)
 
 		ip, err := wx.GetCallBackIP()
 		if err != nil {
 			log.Fatalln(err)
 		}
 		for k, v := range ip.IPList {
-			fmt.Printf("%3d: %#v\n", k, v)
+			log.Printf("%3d: %#v\n", k, v)
 		}
 	})
 	t.Run("Handle", func(t *testing.T) {

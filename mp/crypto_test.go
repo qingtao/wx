@@ -1,8 +1,7 @@
-package weixin
+package mp
 
 import (
 	"encoding/xml"
-	"fmt"
 	"log"
 	"testing"
 )
@@ -23,47 +22,47 @@ const (
 
 func TestAES(t *testing.T) {
 	t.Run("enc", func(t *testing.T) {
-		fmt.Printf("enc to_xml:\n%s\n", to_xml)
+		log.Printf("enc to_xml:\n%s\n", to_xml)
 		ciphertext, err := Encrypt(encodingAESKey, appid, []byte(to_xml))
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("enc:\n%s\n", ciphertext)
+		log.Printf("enc:\n%s\n", ciphertext)
 
 		plaintext, err := Decrypt(encodingAESKey, ciphertext)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
+		log.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
 
 		b, id, err := ParseDecryptMessage(plaintext)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("enc xml and appid:\n%s\n%s\n", b, id)
+		log.Printf("enc xml and appid:\n%s\n%s\n", b, id)
 
 	})
 	t.Run("dec", func(t *testing.T) {
-		fmt.Printf("dec from_xml:\n%s\n", from_xml)
+		log.Printf("dec from_xml:\n%s\n", from_xml)
 
 		var emsg EncryptMessage
 		if err := xml.Unmarshal([]byte(from_xml), &emsg); err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("dec emsg:\n%#v\n", emsg)
+		log.Printf("dec emsg:\n%#v\n", emsg)
 		plaintext, err := Decrypt(encodingAESKey, string(emsg.Encrypt))
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
+		log.Printf("- %s -\n---- %d ----\n", plaintext, plaintext[len(plaintext)-1])
 		b, id, err := ParseDecryptMessage(plaintext)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("dec xml and appid:\n%s\n%s\n", b, id)
+		log.Printf("dec xml and appid:\n%s\n%s\n", b, id)
 	})
 	t.Run("Wxdec", func(t *testing.T) {
-		fmt.Println("---------------------")
+		log.Println("---------------------")
 		x := `<xml><Encrypt><![CDATA[TYISAfTaVqF97gn22+BQrYOtJcf4GU360iTvjzdLBAp800rTdKFOj+nUhAJKUJ82YA5zbRHPZ/F6P8ok8dYMWhu2zBWwv+xIWlERDlaIKp2CKzbSa5FZ2gl1EWrZzn/GDkKEuDIEY7GyjJaVfiduMg8N6oBlxx6xYz0tuyNlVWoAbgDvIxYYJwkN7CRADuD0IPTE7mkY4fGc56fxFc2D58vnsIOQ8ys28m81fhHZ4g0UjcJKJXofj0N5QTJxO9RmHVP39+b0KcevUacw4Dmi8c72/S0IqIl/eBgZVG4IVVPgpii/7gojmbFDHFi9/RTA4nwQJAe9JxNx+76RvnmXvfCW8PigFlvtsJvY31Nv/ZB97ZxIUiJYk2Y48JoH3wZEs/9NKzDHOaOT+SvRFLaIWeD9DUayXXG5g0vEfugrZPM=]]></Encrypt><MsgSignature><![CDATA[2a57bca3d93100e42599d453d97ebde9f5a57eca]]></MsgSignature><TimeStamp>1515926128</TimeStamp><Nonce><![CDATA[143125540]]></Nonce></xml>`
 		const (
 			tken = `tom00123`
@@ -73,22 +72,22 @@ func TestAES(t *testing.T) {
 		if err := xml.Unmarshal([]byte(x), &eres); err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("%s\n", eres)
+		log.Printf("%s\n", eres)
 		sign := Sign(tken, eres.TimeStamp, string(eres.Nonce), string(eres.Encrypt))
 		if sign != string(eres.MsgSignature) {
-			fmt.Printf("sign:\n%s\nmsg_sign:\n%s\n", sign, eres.MsgSignature)
+			log.Printf("sign:\n%s\nmsg_sign:\n%s\n", sign, eres.MsgSignature)
 			log.Fatalln("invalid")
 		}
 		plaintext, err := Decrypt(key, string(eres.Encrypt))
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("%s\n", plaintext)
+		log.Printf("%s\n", plaintext)
 		b, id, err := ParseDecryptMessage(plaintext)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("eres xml and appid:\n%s\n%s\n", b, id)
+		log.Printf("eres xml and appid:\n%s\n%s\n", b, id)
 
 	})
 }

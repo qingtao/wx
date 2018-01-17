@@ -2,16 +2,16 @@ package kf
 
 const (
 	// 客服帐号管理接口path
-	wxKfPath    = "customservice/kfaccount"
-	wxKfAdd     = "add"
-	wxKfUpdate  = "update"
-	wxKfDel     = "del"
-	wxKfHeadImg = "uploadheadimg"
+	WxKfPath    = "customservice/kfaccount"
+	WxKfAdd     = "add"
+	WxKfUpdate  = "update"
+	WxKfDel     = "del"
+	WxKfHeadImg = "uploadheadimg"
 	// 获取客服帐号和发送信息路径
-	wxKfGetAll = "cgi-bin/customservice/getkflist"
-	wxKfSend   = "cgi-bin/message/custom/send"
+	WxKfGetKfList = "cgi-bin/customservice/getkflist"
+	WxKfSend      = "cgi-bin/message/custom/send"
 	// 发送输入状态接口
-	wxKftyping = "cgi-bin/message/cutom/typing"
+	WxKftyping = "cgi-bin/message/cutom/typing"
 )
 
 // Account 帐号管理
