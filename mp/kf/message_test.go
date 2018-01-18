@@ -2,7 +2,6 @@ package kf
 
 import (
 	"encoding/json"
-	"log"
 	"testing"
 )
 
@@ -73,9 +72,9 @@ func TestMsg(t *testing.T) {
 	for i := 0; i < len(msgs); i++ {
 		b, err := json.MarshalIndent(msgs[i], "", "  ")
 		if err != nil {
-			log.Fatalf("%3d xml MarshalIndent %s", i, err)
+			t.Fatalf("%3d xml MarshalIndent %s", i, err)
 		}
-		log.Printf("%3d:\n %s\n------------------------\n", i, b)
+		t.Logf("%3d:\n %s\n------------------------\n", i, b)
 
 	}
 }

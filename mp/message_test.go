@@ -3,7 +3,6 @@ package mp
 import (
 	"encoding/json"
 	"encoding/xml"
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -43,36 +42,36 @@ func TestButton(t *testing.T) {
 
 	var cb Menu
 	if err := json.Unmarshal([]byte(s), &cb); err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	for i, button := range cb.Button {
-		log.Printf("%d - name: %s\n", i, button.Name)
+		t.Logf("%d - name: %s\n", i, button.Name)
 		if button.SubButton != nil {
 			for j, sub := range button.SubButton {
-				log.Printf("- sub_button: %d\n", j)
-				out("-- name: %s\n", sub.Name)
-				out("-- type: %s\n", sub.Type)
-				out("-- key: %s\n", sub.Key)
-				out("-- url: %s\n", sub.URL)
-				out("-- media_id: %s\n", sub.MediaId)
-				out("-- appid: %s\n", sub.AppId)
-				out("-- pagepath: %s\n", sub.PagePath)
+				t.Logf("- sub_button: %d\n", j)
+				out(t, "-- name: %s\n", sub.Name)
+				out(t, "-- type: %s\n", sub.Type)
+				out(t, "-- key: %s\n", sub.Key)
+				out(t, "-- url: %s\n", sub.URL)
+				out(t, "-- media_id: %s\n", sub.MediaId)
+				out(t, "-- appid: %s\n", sub.AppId)
+				out(t, "-- pagepath: %s\n", sub.PagePath)
 			}
 			continue
 		}
 
-		out("- type: %s\n", button.Type)
-		out("- key: %s\n", button.Key)
-		out("- url: %s\n", button.URL)
-		out("- media_id: %s\n", button.MediaId)
-		out("- appid: %s\n", button.AppId)
-		out("- pagepath: %s\n", button.PagePath)
+		out(t, "- type: %s\n", button.Type)
+		out(t, "- key: %s\n", button.Key)
+		out(t, "- url: %s\n", button.URL)
+		out(t, "- media_id: %s\n", button.MediaId)
+		out(t, "- appid: %s\n", button.AppId)
+		out(t, "- pagepath: %s\n", button.PagePath)
 	}
 }
 
-func out(f, s string) {
+func out(t *testing.T, f, s string) {
 	if s != "" {
-		log.Printf(f, s)
+		t.Logf(f, s)
 	}
 }
 
@@ -102,10 +101,10 @@ func TestXML(t *testing.T) {
 	}
 	b, err := xml.MarshalIndent(e, "", "  ")
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
-	log.Printf("%s\n", b)
-	log.Println("---------------")
+	t.Logf("%s\n", b)
+	t.Logf("---------------\n")
 	ss := `<xml>
   <ToUserName><![CDATA[toUser]]></ToUserName>
   <FromUserName><![CDATA[fromUser]]></FromUserName>
@@ -115,15 +114,15 @@ func TestXML(t *testing.T) {
 </xml>`
 	var msg Message
 	if err := xml.Unmarshal([]byte(ss), &msg); err != nil {
-		log.Fatalln("%s\n", err)
+		t.Fatalf("%s\n", err)
 	}
-	log.Println("weixin event:")
-	log.Printf("-- ToUserName: %s\n", msg.ToUserName)
-	log.Printf("-- ToUserName: %v\n", reflect.TypeOf(msg.ToUserName))
-	log.Printf("-- FromUserName: %s\n", msg.FromUserName)
-	log.Printf("-- CreateTime: %d\n", msg.CreateTime)
-	log.Printf("-- Event: %s\n", msg.Event)
-	log.Printf("-- EventKey: %s\n", msg.EventKey)
+	t.Logf("weixin event:\n")
+	t.Logf("-- ToUserName: %s\n", msg.ToUserName)
+	t.Logf("-- ToUserName: %v\n", reflect.TypeOf(msg.ToUserName))
+	t.Logf("-- FromUserName: %s\n", msg.FromUserName)
+	t.Logf("-- CreateTime: %d\n", msg.CreateTime)
+	t.Logf("-- Event: %s\n", msg.Event)
+	t.Logf("-- EventKey: %s\n", msg.EventKey)
 }
 
 func TestMsg(t *testing.T) {
@@ -138,23 +137,16 @@ func TestMsg(t *testing.T) {
 		Scale:        16,
 		Label:        "a省b市c区d路1号)",
 	}
-	/*
-		bj, err := json.MarshalIndent(info, "", "  ")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		log.Printf("%s\n", bj)
-	*/
 	b, err := xml.MarshalIndent(info, "", "  ")
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
-	log.Printf("%s\n", b)
+	t.Logf("%s\n", b)
 	var msg Message
 	if err = xml.Unmarshal(b, &msg); err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
-	log.Printf("%s\n", msg.MsgType)
+	t.Logf("%s\n", msg.MsgType)
 }
 
 func TestResMsg(t *testing.T) {
@@ -211,9 +203,9 @@ func TestResMsg(t *testing.T) {
 	for i := 0; i < len(msgs); i++ {
 		b, err := xml.MarshalIndent(msgs[i], "", "  ")
 		if err != nil {
-			log.Fatalf("%3d xml MarshalIndent %s", i, err)
+			t.Fatalf("%3d xml MarshalIndent %s", i, err)
 		}
-		log.Printf("%3d:\n %s\n------------------------\n", i, b)
+		t.Logf("%3d:\n %s\n------------------------\n", i, b)
 
 	}
 }
