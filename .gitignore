@@ -14,7 +14,7 @@
 .glide/
 
 #ignore key file
-*.jpg
+data/
 key.txt
 key.xml
 aesky/

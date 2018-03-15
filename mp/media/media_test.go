@@ -4,7 +4,9 @@ import (
 	"testing"
 )
 
-var mediaID = ""
+var (
+	image = "../../data/ff.jpg"
+)
 
 func TestUploadImage(t *testing.T) {
 	type args struct {
@@ -23,8 +25,8 @@ func TestUploadImage(t *testing.T) {
 			name: "api",
 			args: args{
 				host:        "api.weixin.qq.com",
-				filename:    "ff.jpg",
-				accessToken: "7_7AxEenvpgl3LjOQbWOcsX3E8mo2rTEv5-Vc8n9D0nw70faB6Cg4rsXP8S1sj19UJDKHvJY-GJj_y7E7hHgpt4BfF7Ru5Z4nNNHBfoWYKWN1Rv7rtd0wPd7DWDRP3_KSKY0Q1WPCjEVSvI4tzECAhAFAJHF",
+				filename:    image,
+				accessToken: "7_AHBHC4MOVpx0IEnEm6dLREs-lloaS0Qs4mEZwKRq2yiCO-d8JbI5YrQgjbhU0U-bUsjNaBTdOwUiUDRLD76r19ydSpK6qi_EFShIeFI3Dksz4b3RKOAe3AM6XHTUVGFWIsqwvLjKOE42pP4nJUHfACAXIV",
 			},
 			wantErr: false,
 		},
@@ -36,7 +38,6 @@ func TestUploadImage(t *testing.T) {
 				t.Errorf("UploadImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			mediaID = got.MediaID
 			t.Logf("UploadImage() = %v, want %v", got, tt.want)
 		})
 	}
@@ -61,7 +62,7 @@ func TestGetMedia(t *testing.T) {
 			args: args{
 				mediaID:     `LMAQxwm98BY1LGorrpi5vHa9NbF6wBvQlNoxZliCeHnYWTpXrBu5ZjTVSLXqRd_w`,
 				host:        "api.weixin.qq.com",
-				accessToken: `7_7AxEenvpgl3LjOQbWOcsX3E8mo2rTEv5-Vc8n9D0nw70faB6Cg4rsXP8S1sj19UJDKHvJY-GJj_y7E7hHgpt4BfF7Ru5Z4nNNHBfoWYKWN1Rv7rtd0wPd7DWDRP3_KSKY0Q1WPCjEVSvI4tzECAhAFAJHF`,
+				accessToken: `7_AHBHC4MOVpx0IEnEm6dLREs-lloaS0Qs4mEZwKRq2yiCO-d8JbI5YrQgjbhU0U-bUsjNaBTdOwUiUDRLD76r19ydSpK6qi_EFShIeFI3Dksz4b3RKOAe3AM6XHTUVGFWIsqwvLjKOE42pP4nJUHfACAXIV`,
 				dir:         "./",
 			},
 			wantErr: false,
