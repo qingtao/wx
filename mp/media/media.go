@@ -268,11 +268,11 @@ func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
 }
 
 // Material 媒体永久图文素材
-type Material struct {
+type MaterialArticle struct {
 	Articles *Article `json:"articles"`
 }
 
-func (m *Material) Parse() (string, io.Reader, error) {
+func (m *MaterialArticle) Parse() (string, io.Reader, error) {
 	b, err := json.Marshal(m)
 	if err != nil {
 		return "", nil, err
@@ -329,18 +329,25 @@ type MaterialResponse struct {
 type MaterialMedia interface {
 	Parse() (string, io.Reader, error)
 }
+type Material interface {
+	MaterialMedia
+	Upload(host, accessToken string) (*MaterialResponse, error)
+}
 
-func UploadMaterial(host, accessToken string, m *Material) (*MaterialResponse, error) {
-	return uploadMaterial(host, accessToken, m)
+func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
+	return uploadMaterial(host, "", accessToken, m)
 }
 
 // UploadMaterial 上传图文素材到公众平台
-func uploadMaterial(host, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
+func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
 	contentType, r, err := m.Parse()
 	if err != nil {
 		return nil, err
 	}
 	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxMediaMaterialAdd, accessToken)
+	if typ != "" {
+		uri = uri + "&type=" + typ
+	}
 	res, err := http.Post(uri, contentType, r)
 	if err != nil {
 		return nil, err
@@ -361,15 +368,20 @@ func uploadMaterial(host, accessToken string, m MaterialMedia) (*MaterialRespons
 }
 
 type MaterialImage struct {
-	FileName string
+	InMaterial bool
+	FileName   string
 }
 
 func (m *MaterialImage) Parse() (string, io.Reader, error) {
 	return ParseFile("image", m.FileName, WxMaterialImageMaxSize, nil)
 }
 
-func UploadMaterialImage(host, accessToken string, m *MaterialImage) (*MaterialResponse, error) {
-	return uploadMaterial(host, accessToken, m)
+func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, error) {
+	typ := "image"
+	if m.InMaterial {
+		typ = ""
+	}
+	return uploadMaterial(host, typ, accessToken, m)
 }
 
 type MaterialVideo struct {
@@ -390,6 +402,30 @@ func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 	return ParseFile("video", m.FileName, WxVideoMaxSize, desc)
 }
 
-func UploadMaterialVideo(host, accessToken string, m *MaterialVideo) (*MaterialResponse, error) {
-	return uploadMaterial(host, accessToken, m)
+func (m *MaterialVideo) Upload(host, accessToken string) (*MaterialResponse, error) {
+	return uploadMaterial(host, "video", accessToken, m)
+}
+
+type MaterialVoice struct {
+	FileName string
+}
+
+func (m *MaterialVoice) Parse() (string, io.Reader, error) {
+	return ParseFile("voice", m.FileName, WxVoiceMaxSize, nil)
+}
+
+func (m *MaterialVoice) Upload(host, accessToken string) (*MaterialResponse, error) {
+	return uploadMaterial(host, "voice", accessToken, m)
+}
+
+type Materialthumb struct {
+	FileName string
+}
+
+func (m *Materialthumb) Parse() (string, io.Reader, error) {
+	return ParseFile("thumb", m.FileName, WxThumbMaxSize, nil)
+}
+
+func (m *Materialthumb) Upload(host, accessToken string) (*MaterialResponse, error) {
+	return uploadMaterial(host, "thumb", accessToken, m)
 }
