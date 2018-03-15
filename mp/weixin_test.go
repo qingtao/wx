@@ -40,5 +40,5 @@ func TestWx(t *testing.T) {
 	t.Run("Handle", func(t *testing.T) {
 		http.HandleFunc("/wx", wx.HandleEncryptEvent)
 	})
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":8080", nil)
 }

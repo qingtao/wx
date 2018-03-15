@@ -158,6 +158,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 	encryptType := r.FormValue("encrypt_type")
 	if msgSignature == "" || encryptType != wxEncryptType {
 		wx.HandleEvent(w, r)
+		fmt.Println("skip encrypt event")
 		return
 	}
 	// 校验消息是否来自微信服务器
