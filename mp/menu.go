@@ -194,7 +194,7 @@ func (wx *WeiXin) GetMenu(accessToken string) (*MenuOfConditional, error) {
 
 	var menu MenuOfConditional
 	if err = json.Unmarshal(b, &menu); err != nil {
-		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", err)
+		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", wx.AppId, err)
 	}
 
 	return &menu, nil

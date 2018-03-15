@@ -107,7 +107,7 @@ func (wx *WeiXin) GetAccessToken() error {
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("appid %s read response: %s", err)
+		return fmt.Errorf("appid %s read response: %s", wx.AppId, err)
 	}
 	defer res.Body.Close()
 
@@ -152,7 +152,7 @@ func (wx *WeiXin) VerfiyWxToken(timestamp, nonce, signature, ciphertext string) 
 
 // HandleEncryptEvent 处理微信推送的加密消息，如果msg_ignature为空或encrypt_type不是"aes", 使用HandleEvent继续处理后续响应
 func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("encrypt event --- %s\n", r)
+	fmt.Printf("encrypt event --- %v\n", r)
 	r.ParseForm()
 	msgSignature := r.FormValue("msg_signature")
 	encryptType := r.FormValue("encrypt_type")
@@ -186,7 +186,7 @@ func (wx *WeiXin) HandleEncryptEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !wx.VerfiyWxToken(timestamp, nonce, msgSignature, string(emsg.Encrypt)) {
-		fmt.Println("handle weixin message verfiy encrypt message failed.\n")
+		fmt.Println("handle weixin message verfiy encrypt message failed.")
 		fmt.Fprint(w, "")
 		return
 	}
@@ -258,7 +258,7 @@ USEOLDKEY:
 //	  1. 消息接收与转发队列
 //	  2. 应答队列
 func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("nomal --- %s\n", r)
+	fmt.Printf("nomal --- %v\n", r)
 	r.ParseForm()
 	signature := r.FormValue("signature")
 	timestamp := r.FormValue("timestamp")
