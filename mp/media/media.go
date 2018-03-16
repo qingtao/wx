@@ -17,19 +17,19 @@ import (
 
 const (
 	// WxImageJPEG 微信的图片格式: jpeg
-	WxImageJPEG = "jpeg"
+	WxImageJPEG = ".jpeg"
 	// WxImageJPG 微信的图片格式: jpg
-	WxImageJPG = "jpg"
+	WxImageJPG = ".jpg"
 	// WxImagePNG 微信的图片格式: png
-	WxImagePNG = "png"
+	WxImagePNG = ".png"
 	// WxImageGIF 微信的图片格式: gif
-	WxImageGIF = "gif"
+	WxImageGIF = ".gif"
 	// WxVoiceMP3 微信的音频：mp3
-	WxVoiceMP3 = "mp3"
+	WxVoiceMP3 = ".mp3"
 	// WxVoiceAMR 微信的音频：amr
-	WxVoiceAMR = "amr"
+	WxVoiceAMR = ".amr"
 	// WxVideoMP4 微信的视频：mp4
-	WxVideoMP4 = "mp4"
+	WxVideoMP4 = ".mp4"
 	// WxMediaUpload 微信临时媒体素材上传的路径
 	WxMediaUpload = "cgi-bin/media/upload"
 	// WxMediaGet 获取微信临时媒体素材的路径
@@ -64,6 +64,7 @@ func ParseFile(typ, filename string, maxsize int, desc []byte) (contentType stri
 		// 检查图片扩展名
 		switch ext {
 		case WxImageGIF, WxImageJPEG, WxImageJPG, WxImagePNG:
+		default:
 			return "", nil, fmt.Errorf("image must be one of jpg|jpeg|gif|png")
 		}
 		if maxsize == 0 {
@@ -176,12 +177,12 @@ func UploadVoice(host, filename, accessToken string) (*Response, error) {
 
 // UploadVideo 上传视频
 func UploadVideo(host, filename, accessToken string) (*Response, error) {
-	return uploadMedia(filename, "video", filename, accessToken)
+	return uploadMedia(host, "video", filename, accessToken)
 }
 
 // UploadThumb 上传缩略图
 func UploadThumb(host, filename, accessToken string) (*Response, error) {
-	return uploadMedia(filename, "thumb", filename, accessToken)
+	return uploadMedia(host, "thumb", filename, accessToken)
 }
 
 // DownloadResponse 下载素材时返回错误信息用
@@ -270,7 +271,7 @@ func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
 
 // MaterialArticle 媒体永久图文素材
 type MaterialArticle struct {
-	Articles *Article `json:"articles"`
+	Articles []*Article `json:"articles"`
 }
 
 // Parse 实现 MaterialMedia接口
@@ -304,14 +305,16 @@ type Article struct {
 const (
 	// WxMaterialImageMaxSize 上传图文中的图片最大值
 	WxMaterialImageMaxSize = 1024 * 1024
-	// WxMediaMaterialAdd 永久图文素材上传路径,此处上传的图片不受素材库数量的限制
-	WxMediaMaterialAdd = "cgi-bin/media/material/add_news"
-	// WxMediaMaterialGet 获取永久图文素材路径
-	WxMediaMaterialGet = "cgi-bin/media/material/get_material"
-	// WxMediaMateriaImagelAdd 图文中图片上传的路径
-	WxMediaMateriaImagelAdd = "cgi-bin/media/uploadimg"
-	// WxMediaMateriaImagelDel 删除永久图文的路径
-	WxMediaMateriaImagelDel = "cgi-bin/media/material/del_material"
+	// WxMaterailAdd 永久图文素材上传路径,此处上传的图片不受素材库数量的限制
+	WxMaterailAdd = "cgi-bin/material/add_news"
+	// WxMaterailAddOther 除图文和图文中图片以外的其他类型上传路径
+	WxMaterailAddOther = "cgi-bin/material/add_material"
+	// WxMaterailGet 获取永久图文素材路径
+	WxMaterailGet = "cgi-bin/material/get_material"
+	// WxMediaUploadImg 图文中图片上传的路径
+	WxMediaUploadImg = "cgi-bin/media/uploadimg"
+	// WxMaterialDel 删除永久图文的路径
+	WxMaterialDel = "cgi-bin/material/del_material"
 )
 
 // MaterialResponse 上传图文素材的响应结构
@@ -343,22 +346,23 @@ type Material interface {
 
 // Upload 使用参数host, access_token，上传图文素材*MaterialArticle到公众平台永久素材库
 func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, "", accessToken, m)
+	return uploadMaterial(host, WxMaterailAdd, "", accessToken, m)
 }
 
 // UploadMaterial 上传图文素材到公众平台
-func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
+func uploadMaterial(host, path, typ, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
 	//使用接口MaterialMedia可以简化视频、图片和音频等的操作
 	contentType, r, err := m.Parse()
 	if err != nil {
 		return nil, err
 	}
 	//uri是图文素材上传的URL地址
-	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxMediaMaterialAdd, accessToken)
+	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
 	// video等类型的文件需要type查询参数
 	if typ != "" {
 		uri = uri + "&type=" + typ
 	}
+
 	res, err := http.Post(uri, contentType, r)
 	if err != nil {
 		return nil, err
@@ -398,11 +402,12 @@ func (m *MaterialImage) Parse() (string, io.Reader, error) {
 
 // Upload 上传图片素材
 func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, error) {
-	typ := "image"
+	typ, path := "image", WxMaterailAddOther
 	if m.InMaterial {
 		typ = ""
+		path = WxMediaUploadImg
 	}
-	return uploadMaterial(host, typ, accessToken, m)
+	return uploadMaterial(host, path, typ, accessToken, m)
 }
 
 // MaterialVideo 视频素材，永久的
@@ -428,7 +433,7 @@ func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 
 // Upload 上传图片文件到微信公共平台
 func (m *MaterialVideo) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, "video", accessToken, m)
+	return uploadMaterial(host, WxMaterailAddOther, "video", accessToken, m)
 }
 
 // MaterialVoice 音频素材，永久的
@@ -443,7 +448,7 @@ func (m *MaterialVoice) Parse() (string, io.Reader, error) {
 
 // Upload 上传音频文件到微信公共平台
 func (m *MaterialVoice) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, "voice", accessToken, m)
+	return uploadMaterial(host, WxMaterailAddOther, "voice", accessToken, m)
 }
 
 // Materialthumb 素材的缩略图
@@ -458,5 +463,5 @@ func (m *Materialthumb) Parse() (string, io.Reader, error) {
 
 // Upload 上传缩略图文件到微信公共平台
 func (m *Materialthumb) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, "thumb", accessToken, m)
+	return uploadMaterial(host, WxMaterailAddOther, "thumb", accessToken, m)
 }
