@@ -118,7 +118,7 @@ func ParseFile(typ, filename string, maxsize int, desc []byte) (contentType stri
 	if _, err = io.Copy(w, fr); err != nil {
 		return "", nil, err
 	}
-	//写入 MaterialVideo的 description
+	//写入 MaterialVideo 的 description
 	if desc != nil {
 		w, err = multiWriter.CreateFormField("description")
 		if err != nil {
@@ -231,7 +231,7 @@ func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("read body %s", err)
 		}
-		fmt.Printf("%s\n", b)
+		//fmt.Printf("%s\n", b)
 		defer res.Body.Close()
 		var downResponse DownloadResponse
 		if err = json.Unmarshal(b, &downResponse); err != nil {
@@ -260,6 +260,7 @@ func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read response body %s", err)
 	}
+	defer res.Body.Close()
 	// 写入文件file
 	if err = ioutil.WriteFile(file, b, 0640); err != nil {
 		return "", fmt.Errorf("write file %s", err)
@@ -267,11 +268,12 @@ func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
 	return file, nil
 }
 
-// Material 媒体永久图文素材
+// MaterialArticle 媒体永久图文素材
 type MaterialArticle struct {
 	Articles *Article `json:"articles"`
 }
 
+// Parse 实现 MaterialMedia接口
 func (m *MaterialArticle) Parse() (string, io.Reader, error) {
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -326,25 +328,34 @@ type MaterialResponse struct {
 	ErrMsg string `json:"errmsg,omitempty"`
 }
 
+// MaterialMedia 永久的多媒体素材
 type MaterialMedia interface {
+	// Parse 返回 Content-Type, io.Reader，error
 	Parse() (string, io.Reader, error)
 }
+
+// Material 永久素材的接口
 type Material interface {
 	MaterialMedia
+	// 上传操作
 	Upload(host, accessToken string) (*MaterialResponse, error)
 }
 
+// Upload 使用参数host, access_token，上传图文素材*MaterialArticle到公众平台永久素材库
 func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
 	return uploadMaterial(host, "", accessToken, m)
 }
 
 // UploadMaterial 上传图文素材到公众平台
 func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
+	//使用接口MaterialMedia可以简化视频、图片和音频等的操作
 	contentType, r, err := m.Parse()
 	if err != nil {
 		return nil, err
 	}
+	//uri是图文素材上传的URL地址
 	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxMediaMaterialAdd, accessToken)
+	// video等类型的文件需要type查询参数
 	if typ != "" {
 		uri = uri + "&type=" + typ
 	}
@@ -352,6 +363,7 @@ func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialRe
 	if err != nil {
 		return nil, err
 	}
+	// TODO: 可能需要检查其他前期的操作判断http相应码
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("when post material, response status is %d", res.StatusCode)
 	}
@@ -359,6 +371,7 @@ func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialRe
 	if err != nil {
 		return nil, fmt.Errorf("when post material, read response failed: %s", err)
 	}
+	defer res.Body.Close()
 
 	var materialResponse MaterialResponse
 	if err = json.Unmarshal(b, &materialResponse); err != nil {
@@ -367,15 +380,23 @@ func uploadMaterial(host, typ, accessToken string, m MaterialMedia) (*MaterialRe
 	return &materialResponse, nil
 }
 
+// MaterialImage 图片素材，永久的,如果 InMaterial为true，不添加type查询字符串
 type MaterialImage struct {
 	InMaterial bool
 	FileName   string
 }
 
+// Parse 实现 MaterialMedia接口
 func (m *MaterialImage) Parse() (string, io.Reader, error) {
-	return ParseFile("image", m.FileName, WxMaterialImageMaxSize, nil)
+	size := WxImageMaxSize
+	// 判断图片大小限制
+	if m.InMaterial {
+		size = WxMaterialImageMaxSize
+	}
+	return ParseFile("image", m.FileName, size, nil)
 }
 
+// Upload 上传图片素材
 func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, error) {
 	typ := "image"
 	if m.InMaterial {
@@ -384,16 +405,19 @@ func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, err
 	return uploadMaterial(host, typ, accessToken, m)
 }
 
+// MaterialVideo 视频素材，永久的
 type MaterialVideo struct {
 	FileName     string `json:"-"`
 	Title        string `json:"title"`
 	Introduction string `json:"introduction"`
 }
 
+// Describe 返回 video 要求的 description
 func (m *MaterialVideo) Describe() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// Parse 实现 MaterialMedia 接口
 func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 	desc, err := m.Describe()
 	if err != nil {
@@ -402,30 +426,37 @@ func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 	return ParseFile("video", m.FileName, WxVideoMaxSize, desc)
 }
 
+// Upload 上传图片文件到微信公共平台
 func (m *MaterialVideo) Upload(host, accessToken string) (*MaterialResponse, error) {
 	return uploadMaterial(host, "video", accessToken, m)
 }
 
+// MaterialVoice 音频素材，永久的
 type MaterialVoice struct {
 	FileName string
 }
 
+// Parse 实现 MaterialMedia 接口
 func (m *MaterialVoice) Parse() (string, io.Reader, error) {
 	return ParseFile("voice", m.FileName, WxVoiceMaxSize, nil)
 }
 
+// Upload 上传音频文件到微信公共平台
 func (m *MaterialVoice) Upload(host, accessToken string) (*MaterialResponse, error) {
 	return uploadMaterial(host, "voice", accessToken, m)
 }
 
+// Materialthumb 素材的缩略图
 type Materialthumb struct {
 	FileName string
 }
 
+// Parse 实现 MaterialMedia 接口
 func (m *Materialthumb) Parse() (string, io.Reader, error) {
 	return ParseFile("thumb", m.FileName, WxThumbMaxSize, nil)
 }
 
+// Upload 上传缩略图文件到微信公共平台
 func (m *Materialthumb) Upload(host, accessToken string) (*MaterialResponse, error) {
 	return uploadMaterial(host, "thumb", accessToken, m)
 }

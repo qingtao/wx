@@ -5,8 +5,10 @@ import (
 	"testing"
 )
 
+const key = "../../data/key.xml"
+
 func TestWx(t *testing.T) {
-	wx, err := New("key.xml")
+	wx, err := New(key)
 	if err != nil {
 		t.Fatalf("---- %s\n", err)
 	}
@@ -38,7 +40,9 @@ func TestWx(t *testing.T) {
 		}
 	})
 	t.Run("Handle", func(t *testing.T) {
+		//监听加密事件处理
 		http.HandleFunc("/wx", wx.HandleEncryptEvent)
 	})
-	http.ListenAndServe(":8080", nil)
+	//运行微信平台测试服务器接口是在腾讯云上进行的，故前端还存在Nginx
+	http.ListenAndServe(":30012", nil)
 }
