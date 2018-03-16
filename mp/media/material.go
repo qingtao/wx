@@ -47,8 +47,8 @@ var (
 	WxThumbMaxSize = 64 * 1024
 )
 
-// Response 微信公众平台媒体资源API响应结构，放置在一起方便解析响应的消息和错误
-type Response struct {
+// UploadResponse 微信公众平台媒体资源API响应结构，放置在一起方便解析响应的消息和错误
+type UploadResponse struct {
 	Type      string `json:"type,omitempty"`
 	MediaID   string `json:"media_id,omitempty"`
 	CreatedAt int    `json:"created_at,omitempty"`
@@ -138,7 +138,7 @@ func ParseFile(typ, filename string, maxsize int, desc []byte) (contentType stri
 }
 
 // uploadMedia 上传素材到公众平台，host 正常是通过微信公众平台的域名，accessToken 是调用接口凭证
-func uploadMedia(host, typ, filename, accessToken string) (*Response, error) {
+func uploadMedia(host, typ, filename, accessToken string) (*UploadResponse, error) {
 	contentType, r, err := ParseFile(typ, filename, 0, nil)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ func uploadMedia(host, typ, filename, accessToken string) (*Response, error) {
 		return nil, fmt.Errorf("when post file %s, message received: %s", filename, err)
 	}
 	defer res.Body.Close()
-	var resp Response
+	var resp UploadResponse
 	if err := json.Unmarshal(b, &resp); err != nil {
 		return nil, err
 	}
@@ -166,22 +166,22 @@ func uploadMedia(host, typ, filename, accessToken string) (*Response, error) {
 }
 
 // UploadImage 上传图片
-func UploadImage(host, filename, accessToken string) (*Response, error) {
+func UploadImage(host, filename, accessToken string) (*UploadResponse, error) {
 	return uploadMedia(host, "image", filename, accessToken)
 }
 
 // UploadVoice 上传音频
-func UploadVoice(host, filename, accessToken string) (*Response, error) {
+func UploadVoice(host, filename, accessToken string) (*UploadResponse, error) {
 	return uploadMedia(host, "voice", filename, accessToken)
 }
 
 // UploadVideo 上传视频
-func UploadVideo(host, filename, accessToken string) (*Response, error) {
+func UploadVideo(host, filename, accessToken string) (*UploadResponse, error) {
 	return uploadMedia(host, "video", filename, accessToken)
 }
 
 // UploadThumb 上传缩略图
-func UploadThumb(host, filename, accessToken string) (*Response, error) {
+func UploadThumb(host, filename, accessToken string) (*UploadResponse, error) {
 	return uploadMedia(host, "thumb", filename, accessToken)
 }
 
@@ -309,8 +309,6 @@ const (
 	WxMaterailAdd = "cgi-bin/material/add_news"
 	// WxMaterailAddOther 除图文和图文中图片以外的其他类型上传路径
 	WxMaterailAddOther = "cgi-bin/material/add_material"
-	// WxMaterailGet 获取永久图文素材路径
-	WxMaterailGet = "cgi-bin/material/get_material"
 	// WxMediaUploadImg 图文中图片上传的路径
 	WxMediaUploadImg = "cgi-bin/media/uploadimg"
 	// WxMaterialDel 删除永久图文的路径
