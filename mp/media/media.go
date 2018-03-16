@@ -296,7 +296,7 @@ type Article struct {
 	// ShowCoverPic 是否显示封面，0：false，1：true
 	ShowCoverPic int `json:"show_cover_pic"`
 	// Content 图文消息的具体内容，支持HTML标签，必须少于2万字符，小于1M，且此处会去除JS,涉及图片url必须来源 "上传图文消息内的图片获取URL"接口获取。外部图片url将被过滤。
-	Content string `json:"content "`
+	Content string `json:"content"`
 	// ContentSourceURL 图文消息的原文地址，即点击“阅读原文”后的URL
 	ContentSourceURL string `json:"content_source_url"`
 }

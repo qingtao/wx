@@ -209,12 +209,12 @@ func TestMaterialArticle_Upload(t *testing.T) {
 				[]*Article{
 					{
 						Title:            "MaterialArticleTest",
-						ThumbMediaID:     "1",
+						ThumbMediaID:     "ivsqEz6azLj5EqfuahV6mZeqG7uT7r0Mawcovnh4Fdc",
 						Author:           "tom",
 						Digest:           "没什么内容",
 						ShowCoverPic:     1,
 						Content:          "正文也没什么内容的",
-						ContentSourceURL: "",
+						ContentSourceURL: "http://mmbiz.qpic.cn/mmbiz_jpg/4ZsURkMgSkhYibLE2pxF1y0Pib41rdoFMU3WcLe3NoAtVPd8yWzF95gChheUa2IVY6ibFUAclMvwYbAIH37Usnhgg/0",
 					},
 				},
 			},
