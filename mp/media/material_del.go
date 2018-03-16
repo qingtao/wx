@@ -14,6 +14,9 @@ type Response struct {
 	ErrMsg  string `json:"errmsg,omitempty"`
 }
 
+// WxMaterialDel 删除永久图文的路径
+const WxMaterialDel = "cgi-bin/material/del_material"
+
 // DeleteMaterial 删除永久素材
 func DeleteMaterial(host, path, mediaID, accessToken string) (*Response, error) {
 	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)

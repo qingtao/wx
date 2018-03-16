@@ -311,8 +311,6 @@ const (
 	WxMaterailAddOther = "cgi-bin/material/add_material"
 	// WxMediaUploadImg 图文中图片上传的路径
 	WxMediaUploadImg = "cgi-bin/media/uploadimg"
-	// WxMaterialDel 删除永久图文的路径
-	WxMaterialDel = "cgi-bin/material/del_material"
 )
 
 // MaterialResponse 上传图文素材的响应结构

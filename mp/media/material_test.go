@@ -8,7 +8,7 @@ import (
 var (
 	wxhost      = "api.weixin.qq.com"
 	image       = "../../data/ff.jpg"
-	accessToken = "7_zNnm0ovXFD5et6DOpFk53UvR5bL7iswjA-446ufpB8w_0iOPl6Quz3tDh8ubgvf3MXQETtwhoZMrr5rWjVSCCevEx3uv0JMxLjY-xUPvhFcz1cFU3UItmcraLZ0D7BpLFYs9PBUQme--D5McVLUjAGABRA"
+	accessToken = "7_obDjOczo257C3dIzm6dLREs-lloaS0Qs4mEZwLS2skqX1Dd_erJf1gJGLtfs1r8B6-N_hx91po2A9BT-pjvMz9JLuEak3RAhlQA9J8uzKK6izwNG21znQgLBT-MMHDZXikEk6PouvZeg9DGXLRJfAEAWCU"
 )
 
 func TestUploadImage(t *testing.T) {
