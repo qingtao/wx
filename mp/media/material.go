@@ -299,6 +299,10 @@ type Article struct {
 	Content string `json:"content"`
 	// ContentSourceURL 图文消息的原文地址，即点击“阅读原文”后的URL
 	ContentSourceURL string `json:"content_source_url"`
+	// NeedOpenComment 可以留言或者评论
+	NeedOpenComment uint32 `json:"need_open_comment,omitempty"`
+	// OnlyFansCanComment 只有公众号粉丝评价
+	OnlyFansCanComment uint32 `json:"only_fans_can_comment,omitempty"`
 }
 
 // WxMaterialImageMaxSize 图文消息内的图片，只支持jpg/png，且大小不能大于1MB
