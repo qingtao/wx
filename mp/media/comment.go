@@ -118,7 +118,7 @@ func ChangeElect(host, accessToken, path string, msgdataid, index, usercommentid
 	return &resp, nil
 }
 
-//  MarkElect 标记评论为精选
+// MarkElect 标记评论为精选
 func MarkElect(host, accessToken string, msgdataid, index, usercommentid uint32) (*Response, error) {
 	return ChangeElect(host, accessToken, WxMarkElect, msgdataid, index, usercommentid)
 }
@@ -128,7 +128,7 @@ func UnMarkElect(host, accessToken string, msgdataid, index, usercommentid uint3
 	return ChangeElect(host, accessToken, WxUnMarkElect, msgdataid, index, usercommentid)
 }
 
-// WxDelMarkElect 删除评论
+// WxDelComment 删除评论
 const WxDelComment = `cgi-bin/comment/delete`
 
 // DeleteComment 删除评论
