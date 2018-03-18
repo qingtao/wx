@@ -1,24 +1,29 @@
 package cs
 
 const (
-	// 客服帐号管理接口path
-	WxKfPath    = "customservice/kfaccount"
-	WxKfAdd     = "add"
-	WxKfUpdate  = "update"
-	WxKfDel     = "del"
+	// WxKfPath 客服帐号管理接口path
+	WxKfPath = "customservice/kfaccount"
+	// WxKfAdd 添加
+	WxKfAdd = "add"
+	// WxKfUpdate 修改
+	WxKfUpdate = "update"
+	// WxKfDel 删除
+	WxKfDel = "del"
+	// WxKfHeadImg 头像图片
 	WxKfHeadImg = "uploadheadimg"
-	// 获取客服帐号和发送信息路径
+	// WxKfGetKfList 获取客服帐号和发送信息路径
 	WxKfGetKfList = "cgi-bin/customservice/getkflist"
-	WxKfSend      = "cgi-bin/message/custom/send"
-	// 发送输入状态接口
+	// WxKfSend 发送消息
+	WxKfSend = "cgi-bin/message/custom/send"
+	// WxKftyping 发送输入状态接口
 	WxKftyping = "cgi-bin/message/cutom/typing"
 )
 
 // Account 帐号管理
 type Account struct {
-	Kf_account string `json:"kf_account"`
-	Nickname   string `json:"nickname"`
-	Password   string `json:"password"`
+	KfAccount string `json:"kf_account"`
+	Nickname  string `json:"nickname"`
+	Password  string `json:"password"`
 }
 
 // Response 微信返回错误码和信息
@@ -31,15 +36,15 @@ type Response struct {
 
 // List getkflist返回的客户帐号信息
 type List struct {
-	Kf_account    string `json:"kf_account,omitempty"`
-	Kf_nick       string `json:"kf_nick,omitempty"`
-	Kf_id         string `json:"kf_id,omitempty"`
-	Kf_headimgurl string `json:"kf_headimgurl,omitempty"`
+	KfAccount    string `json:"kf_account,omitempty"`
+	KfNick       string `json:"kf_nick,omitempty"`
+	KfID         string `json:"kf_id,omitempty"`
+	KfHeadimgurl string `json:"kf_headimgurl,omitempty"`
 }
 
 // Lists getkflist返回的客户帐号信息, 错误时返回错误码和错误信息
 type Lists struct {
-	Kf_list []*List `json:"kf_lsit,omitempty"`
+	KfList  []*List `json:"kf_lsit,omitempty"`
 	Errcode int     `json:"errcode,omitempty"`
 	Errmsg  string  `json:"errmsg,omitempty"`
 }
@@ -79,8 +84,8 @@ type Text struct {
 
 // Media 多媒体消息
 type Media struct {
-	MediaId      string `json:"media_id,omitempty"`
-	ThumbMediaId string `json:"thumb_media_id,omitempty"`
+	MediaID      string `json:"media_id,omitempty"`
+	ThumbMediaID string `json:"thumb_media_id,omitempty"`
 	Title        string `json:"title,omitempty"`
 	Description  string `json:"description,omitempty"`
 }
@@ -94,9 +99,9 @@ func NewMedia(mediaid, title, desc, thumb string) *Media {
 type Music struct {
 	Title        string `json:"title,omitempty"`
 	Description  string `json:"description,omitempty"`
-	MusicUrl     string `json:"musicurl,omitempty"`
-	HqMusicUrl   string `json:"hqmusicurl"`
-	ThumbMediaId string `json:"thumb_media_id,omitempty"`
+	MusicURL     string `json:"musicurl,omitempty"`
+	HqMusicURL   string `json:"hqmusicurl"`
+	ThumbMediaID string `json:"thumb_media_id,omitempty"`
 }
 
 // NewMusic 新建音乐消息
@@ -104,7 +109,7 @@ func NewMusic(title, desc, musicurl, hqmusicurl, thumb string) *Music {
 	return &Music{title, desc, musicurl, hqmusicurl, thumb}
 }
 
-// News图文消息
+// News 图文消息
 type News struct {
 	Articles []*Article `json:"articles,omitempty"`
 }
@@ -113,21 +118,21 @@ type News struct {
 type Article struct {
 	Title       string `json:"title,omitempty"`
 	Description string `json:"description,omitempty"`
-	Url         string `json:"url,omitempty"`
-	PicUrl      string `json:"picurl,omitempty"`
+	URL         string `json:"url,omitempty"`
+	PicURL      string `json:"picurl,omitempty"`
 }
 
 // NewArticle 新建图文文章
-func NewArticle(title, desc, Url, picurl string) *Article {
-	return &Article{title, desc, Url, picurl}
+func NewArticle(title, desc, URL, picurl string) *Article {
+	return &Article{title, desc, URL, picurl}
 }
 
 // WxCard 微信卡卷
 type WxCard struct {
-	CardId string `json:"card_id,omitempty"`
+	CardID string `json:"card_id,omitempty"`
 }
 
-// WxCard 新建客服消息微信卡卷消息
+// NewWxCard 新建客服消息微信卡卷消息
 func NewWxCard(id string) *WxCard {
 	return &WxCard{id}
 }
@@ -135,9 +140,9 @@ func NewWxCard(id string) *WxCard {
 // MiniProgramPage 微信小程序页面
 type MiniProgramPage struct {
 	Title        string `json:"title,omitempty"`
-	AppId        string `json:"appid,omitempty"`
+	AppID        string `json:"appid,omitempty"`
 	PagePath     string `json:"pagepath,omitempty"`
-	ThumbMediaId string `json:"thumb_media_id,omitempty"`
+	ThumbMediaID string `json:"thumb_media_id,omitempty"`
 }
 
 // NewMiniProgramPage 新建小程序页面消息
@@ -147,7 +152,7 @@ func NewMiniProgramPage(title, appid, pagepath, thumb string) *MiniProgramPage {
 
 // CustomService 发送客服消息使用的客服帐号名称
 type CustomService struct {
-	Kf_account string `json:"kf_account,omitempty"`
+	KfAccount string `json:"kf_account,omitempty"`
 }
 
 // SetCustomService 设置使用哪个客服帐号发送消息
