@@ -1,4 +1,4 @@
-package kf
+package cs
 
 const (
 	// 客服帐号管理接口path

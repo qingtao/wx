@@ -30,7 +30,7 @@ const (
 	randString = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
 )
 
-// NewAESKey根据生成AES密钥
+// NewCipherBlock 根据生成AES密钥
 func NewCipherBlock(encodingAESKey string) (cipher.Block, error) {
 	if len(encodingAESKey) != 43 {
 		return nil, errors.New("EncodingAESKey must be 43 bytes")
@@ -57,7 +57,7 @@ type EncryptMessage struct {
 	Encrypt CDATA
 }
 
-// EncryptResponse响应微信服务器的格式
+// EncryptResponse 响应微信服务器的格式
 type EncryptResponse struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`

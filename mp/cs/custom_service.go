@@ -1,4 +1,4 @@
-package mp
+package cs
 
 import (
 	"bytes"
@@ -6,18 +6,21 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
-	"qingtao/weixin/mp/kf"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // postAcount 微信客服消息接口管理客服帐号，action: add/update/del
-func (wx *WeiXin) postAcount(action string, acc *kf.Account) (*kf.Response, error) {
+func postAcount(host, action, accessToken string, acc *Account) (*Response, error) {
 	b, err := json.Marshal(acc)
 	if err != nil {
 		return nil, err
 	}
 	uri := fmt.Sprintf("https://%s/%s/%s/?access_token=%s",
-		wx.Host, kf.WxKfPath, action, wx.accessToken)
+		host, WxKfPath, action, accessToken)
 	res, err := http.Post(uri, "application/json; charset=utf-8",
 		bytes.NewReader(b))
 	if err != nil {
@@ -28,7 +31,7 @@ func (wx *WeiXin) postAcount(action string, acc *kf.Account) (*kf.Response, erro
 		return nil, fmt.Errorf("%s kfacount %s", action, err)
 	}
 	defer res.Body.Close()
-	var status kf.Response
+	var status Response
 	if err = json.Unmarshal(b, &status); err != nil {
 		return nil, fmt.Errorf("%s kfacount %s", action, err)
 	}
@@ -36,25 +39,57 @@ func (wx *WeiXin) postAcount(action string, acc *kf.Account) (*kf.Response, erro
 }
 
 // AddAccount 新增客服帐号
-func (wx *WeiXin) AddAccount(acc *kf.Account) (*kf.Response, error) {
-	return wx.postAcount(kf.WxKfAdd, acc)
+func AddAccount(host, accessToken string, acc *Account) (*Response, error) {
+	return postAcount(host, WxKfAdd, accessToken, acc)
 }
 
 // UpdateAccount 修改客服帐号
-func (wx *WeiXin) UpdateAccount(acc *kf.Account) (*kf.Response, error) {
-	return wx.postAcount(kf.WxKfUpdate, acc)
+func UpdateAccount(host, accessToken string, acc *Account) (*Response, error) {
+	return postAcount(host, WxKfUpdate, accessToken, acc)
 }
 
 // DelAccount 删除客服帐号
-func (wx *WeiXin) DelAccount(acc *kf.Account) (*kf.Response, error) {
-	return wx.postAcount(kf.WxKfDel, acc)
+func DelAccount(host, accessToken string, acc *Account) (*Response, error) {
+	return postAcount(host, WxKfDel, accessToken, acc)
 }
 
-// UploadHeadImage 上传客服头像，未实现
-func (wx *WeiXin) UploadHeadImage(account string, r io.Reader) (*kf.Response, error) {
+// UploadHeadImage 上传客服头像
+func UploadHeadImage(host, accessToken, account, filename string) (*Response, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	// 检查图片扩展名
+	if ext != ".jpg" {
+		return nil, fmt.Errorf("image must be one of .jpg")
+	}
+	// 取文件状态，得到文件名称和大小
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return nil, fmt.Errorf("upload %s %s", filename, err)
+	}
+
+	var buf = new(bytes.Buffer)
+	multiWriter := multipart.NewWriter(buf)
+	// multipart的文件，名称“media”是微信要求的参数
+	w, err := multiWriter.CreateFormFile("media", stat.Name())
+	if err != nil {
+		return nil, err
+	}
+	// 打开文件
+	fr, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer fr.Close()
+	// 文件内容写入到w->buf
+	if _, err = io.Copy(w, fr); err != nil {
+		return nil, err
+	}
+	multiWriter.Close()
+	// 获取http头部的Content-Type
+	contentType := multiWriter.FormDataContentType()
+
 	uri := fmt.Sprintf("https://%s/%s/%s?access_token=%skf_account=%s",
-		wx.Host, kf.WxKfPath, kf.WxKfHeadImg, wx.accessToken, account)
-	res, err := http.Post(uri, "image/jpeg", r)
+		host, WxKfPath, WxKfHeadImg, accessToken, account)
+	res, err := http.Post(uri, contentType, buf)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +98,7 @@ func (wx *WeiXin) UploadHeadImage(account string, r io.Reader) (*kf.Response, er
 		return nil, err
 	}
 	defer res.Body.Close()
-	var status kf.Response
+	var status Response
 	if err := json.Unmarshal(b, &status); err != nil {
 		return nil, err
 	}
@@ -71,9 +106,9 @@ func (wx *WeiXin) UploadHeadImage(account string, r io.Reader) (*kf.Response, er
 }
 
 // GetList 获取所有客户帐号
-func (wx *WeiXin) GetList() (*kf.Lists, error) {
+func GetList(host, accessToken string) (*Lists, error) {
 	uri := fmt.Sprintf("https://%s/%s?access_token=%s",
-		wx.Host, kf.WxKfGetKfList, wx.accessToken)
+		host, WxKfGetKfList, accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
 		return nil, err
@@ -83,7 +118,7 @@ func (wx *WeiXin) GetList() (*kf.Lists, error) {
 		return nil, fmt.Errorf("getkflist %s", err)
 	}
 	defer res.Body.Close()
-	var list kf.Lists
+	var list Lists
 	if err = json.Unmarshal(b, &list); err != nil {
 		return nil, fmt.Errorf("getkflist %s", err)
 	}
@@ -91,13 +126,13 @@ func (wx *WeiXin) GetList() (*kf.Lists, error) {
 }
 
 // SendMessage 发送客服消息
-func (wx *WeiXin) SendMessage(msg *kf.Message) (*kf.Response, error) {
+func SendMessage(host, accessToken string, msg *Message) (*Response, error) {
 	b, err := json.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("send custom message %s", err)
 	}
-	uri := fmt.Sprintf("https://%s/%s?access_token=%s", wx.Host,
-		kf.WxKfSend, wx.accessToken)
+	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host,
+		WxKfSend, accessToken)
 	res, err := http.Post(uri, "application/json; charset=utf-8",
 		bytes.NewReader(b))
 	if err != nil {
@@ -107,7 +142,7 @@ func (wx *WeiXin) SendMessage(msg *kf.Message) (*kf.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("send custom message %s", err)
 	}
-	var status kf.Response
+	var status Response
 	if err = json.Unmarshal(b, &status); err != nil {
 		return nil, fmt.Errorf("send custom message, read response %s", err)
 	}
@@ -115,10 +150,10 @@ func (wx *WeiXin) SendMessage(msg *kf.Message) (*kf.Response, error) {
 }
 
 // SendTyping 发送输入状态
-func (wx *WeiXin) SendTyping(touser string) (*kf.Response, error) {
-	typing := `{"touser":"` + touser + `", "command":"typing"}`
-	uri := fmt.Sprintf("https://%s/%s?access_token=%s", wx.Host,
-		kf.WxKftyping, wx.accessToken)
+func SendTyping(host, accessToken, toUser string) (*Response, error) {
+	typing := `{"touser":"` + toUser + `", "command":"typing"}`
+	uri := fmt.Sprintf("https://%s/%s?access_token=%s", host,
+		WxKftyping, accessToken)
 	res, err := http.Post(uri, "application/json; charset=utf-8",
 		bytes.NewReader([]byte(typing)))
 
@@ -129,7 +164,7 @@ func (wx *WeiXin) SendTyping(touser string) (*kf.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("send typing %s", err)
 	}
-	var status kf.Response
+	var status Response
 	if err = json.Unmarshal(b, &status); err != nil {
 		return nil, fmt.Errorf("send typing read response %s", err)
 	}
