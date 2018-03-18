@@ -7,7 +7,6 @@ import (
 func TestDeleteMaterial(t *testing.T) {
 	type args struct {
 		host        string
-		path        string
 		mediaID     string
 		accessToken string
 	}
@@ -22,8 +21,7 @@ func TestDeleteMaterial(t *testing.T) {
 			name: "DeleteMaterial",
 			args: args{
 				host:        wxhost,
-				path:        WxMaterialDel,
-				mediaID:     "ivsqEz6azLj5EqfuahV6mX3AagdoCeHqHfzYxZuLVIE",
+				mediaID:     "nEemRfdR4u4U9wU3ttFTAtsfJDgB80cE_3GKWf6z-3iVAIUJm6UEWyTwLjxjd_ar",
 				accessToken: accessToken,
 			},
 			wantErr: false,
@@ -31,7 +29,7 @@ func TestDeleteMaterial(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DeleteMaterial(tt.args.host, tt.args.path, tt.args.mediaID, tt.args.accessToken)
+			got, err := DeleteMaterial(tt.args.host, tt.args.accessToken, tt.args.mediaID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DeleteMaterial() error = %v, wantErr %v", err, tt.wantErr)
 				return

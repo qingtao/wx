@@ -22,7 +22,7 @@ type MaterialUpdater struct {
 const WxMaterailUpdateNews = "cgi-bin/material/update_news"
 
 // UpdateMaterial 更新永久图文素材
-func UpdateMaterial(host, path, accessToken string, materialUpdater *MaterialUpdater) (*Response, error) {
+func UpdateMaterial(host, accessToken, path string, materialUpdater *MaterialUpdater) (*Response, error) {
 	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
 	b, err := json.Marshal(materialUpdater)
 	if err != nil {
@@ -71,8 +71,8 @@ type MaterialCounter struct {
 const WxGetMaterialCount = "cgi-bin/material/get_materialcount"
 
 // GetMaterialCount 获取永久素材数量
-func GetMaterialCount(host, path, accessToken string) (*Response, error) {
-	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
+func GetMaterialCount(host, accessToken string) (*MaterialCounter, error) {
+	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxGetMaterialCount, accessToken)
 	res, err := http.Get(URL)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func GetMaterialCount(host, path, accessToken string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	var resp Response
+	var resp MaterialCounter
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return nil, errors.New("get material count failed")
 	}
@@ -111,7 +111,7 @@ type MaterialList struct {
 type Item struct {
 	MediaID    string   `json:"media_id,omitempty"`
 	Content    *Content `json:"content,omitempty"`
-	UpdateTime string   `json:"update_time,omitempty"`
+	UpdateTime int      `json:"update_time,omitempty"`
 	Name       string   `json:"name,omitempty"`
 	URL        string   `json:"url,omitempty"`
 }
@@ -149,8 +149,8 @@ type NewsItem struct {
 const WxMaterailGetList = "cgi-bin/material/batchget_material"
 
 // GetMaterialList 获取永久素材的列表
-func GetMaterialList(host, path, accessToken string, req *MaterialListRequest) (*MaterialList, error) {
-	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
+func GetMaterialList(host, accessToken string, req *MaterialListRequest) (*MaterialList, error) {
+	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxMaterailGetList, accessToken)
 	b, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -160,19 +160,10 @@ func GetMaterialList(host, path, accessToken string, req *MaterialListRequest) (
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%s\n", b)
 	var resp MaterialList
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
-
-const (
-	// WxOpenComment 打开评论
-	WxOpenComment = "cgi-bin/comment/open"
-	// wxCloseComment 关闭评论
-	wxCloseComment = "cgi-bin/comment/close"
-)
-
-// TODO
-// 添加评论的操作

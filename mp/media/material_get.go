@@ -27,8 +27,8 @@ type MaterialGetResponse struct {
 }
 
 // GetMaterial 获取永久图文素材，返回的*MaterialGetResponse需要注意请求的是视频还是图文
-func GetMaterial(host, path, typ, mediaID, accessToken, dir string) (filename string, resp *MaterialGetResponse, err error) {
-	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
+func GetMaterial(host, accessToken, typ, mediaID, dir string) (filename string, resp *MaterialGetResponse, err error) {
+	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, accessToken, WxMaterailGet)
 	JSON := `{"media_id":"` + mediaID + `"}`
 	res, err := http.Post(URL, "application/json; charset=utf-8", strings.NewReader(JSON))
 	if err != nil {

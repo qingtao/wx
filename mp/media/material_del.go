@@ -18,8 +18,8 @@ type Response struct {
 const WxMaterialDel = "cgi-bin/material/del_material"
 
 // DeleteMaterial 删除永久素材
-func DeleteMaterial(host, path, mediaID, accessToken string) (*Response, error) {
-	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, path, accessToken)
+func DeleteMaterial(host, accessToken, mediaID string) (*Response, error) {
+	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxMaterialDel, accessToken)
 	JSON := `{"media_id":"` + mediaID + `"}`
 	res, err := http.Post(URL, "application/json; charset=utf-8", strings.NewReader(JSON))
 	if err != nil {

@@ -138,7 +138,7 @@ func ParseFile(typ, filename string, maxsize int, desc []byte) (contentType stri
 }
 
 // uploadMedia 上传素材到公众平台，host 正常是通过微信公众平台的域名，accessToken 是调用接口凭证
-func uploadMedia(host, typ, filename, accessToken string) (*UploadResponse, error) {
+func uploadMedia(host, accessToken, typ, filename string) (*UploadResponse, error) {
 	contentType, r, err := ParseFile(typ, filename, 0, nil)
 	if err != nil {
 		return nil, err
@@ -166,22 +166,22 @@ func uploadMedia(host, typ, filename, accessToken string) (*UploadResponse, erro
 }
 
 // UploadImage 上传图片
-func UploadImage(host, filename, accessToken string) (*UploadResponse, error) {
+func UploadImage(host, accessToken, filename string) (*UploadResponse, error) {
 	return uploadMedia(host, "image", filename, accessToken)
 }
 
 // UploadVoice 上传音频
-func UploadVoice(host, filename, accessToken string) (*UploadResponse, error) {
+func UploadVoice(host, accessToken, filename string) (*UploadResponse, error) {
 	return uploadMedia(host, "voice", filename, accessToken)
 }
 
 // UploadVideo 上传视频
-func UploadVideo(host, filename, accessToken string) (*UploadResponse, error) {
+func UploadVideo(host, accessToken, filename string) (*UploadResponse, error) {
 	return uploadMedia(host, "video", filename, accessToken)
 }
 
 // UploadThumb 上传缩略图
-func UploadThumb(host, filename, accessToken string) (*UploadResponse, error) {
+func UploadThumb(host, accessToken, filename string) (*UploadResponse, error) {
 	return uploadMedia(host, "thumb", filename, accessToken)
 }
 
@@ -201,7 +201,7 @@ func (dr DownloadResponse) String() string {
 }
 
 // GetMedia 下载素材, 如果error为nil，返回的字符串是文件保存的绝对路径
-func GetMedia(host, mediaID, accessToken, dir string) (string, error) {
+func GetMedia(host, accessToken, mediaID, dir string) (string, error) {
 	uri := fmt.Sprintf("http://%s/%s?access_token=%smedia_id=%s",
 		host, WxMediaUpload, accessToken, mediaID)
 	res, err := http.Get(uri)
@@ -337,20 +337,13 @@ type MaterialMedia interface {
 	Parse() (string, io.Reader, error)
 }
 
-// Material 永久素材的接口
-type Material interface {
-	MaterialMedia
-	// 上传操作
-	Upload(host, accessToken string) (*MaterialResponse, error)
-}
-
 // Upload 使用参数host, access_token，上传图文素材*MaterialArticle到公众平台永久素材库
 func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, WxMaterailAdd, "", accessToken, m)
+	return UploadMaterial(host, WxMaterailAdd, "", accessToken, m)
 }
 
 // UploadMaterial 上传图文素材到公众平台
-func uploadMaterial(host, path, typ, accessToken string, m MaterialMedia) (*MaterialResponse, error) {
+func UploadMaterial(host, accessToken, path, typ string, m MaterialMedia) (*MaterialResponse, error) {
 	//使用接口MaterialMedia可以简化视频、图片和音频等的操作
 	contentType, r, err := m.Parse()
 	if err != nil {
@@ -407,7 +400,7 @@ func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, err
 		typ = ""
 		path = WxMediaUploadImg
 	}
-	return uploadMaterial(host, path, typ, accessToken, m)
+	return UploadMaterial(host, path, accessToken, typ, m)
 }
 
 // MaterialVideo 视频素材，永久的
@@ -433,7 +426,7 @@ func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 
 // Upload 上传图片文件到微信公共平台
 func (m *MaterialVideo) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, WxMaterailAddOther, "video", accessToken, m)
+	return UploadMaterial(host, WxMaterailAddOther, accessToken, "video", m)
 }
 
 // MaterialVoice 音频素材，永久的
@@ -448,7 +441,7 @@ func (m *MaterialVoice) Parse() (string, io.Reader, error) {
 
 // Upload 上传音频文件到微信公共平台
 func (m *MaterialVoice) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, WxMaterailAddOther, "voice", accessToken, m)
+	return UploadMaterial(host, WxMaterailAddOther, accessToken, "voice", m)
 }
 
 // Materialthumb 素材的缩略图
@@ -463,5 +456,5 @@ func (m *Materialthumb) Parse() (string, io.Reader, error) {
 
 // Upload 上传缩略图文件到微信公共平台
 func (m *Materialthumb) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return uploadMaterial(host, WxMaterailAddOther, "thumb", accessToken, m)
+	return UploadMaterial(host, WxMaterailAddOther, accessToken, "thumb", m)
 }
