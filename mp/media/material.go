@@ -283,6 +283,11 @@ func (m *MaterialArticle) Parse() (string, io.Reader, error) {
 	return "application/json; charset=utf-8", bytes.NewReader(b), nil
 }
 
+// Upload 使用参数host, access_token，上传图文素材*MaterialArticle到公众平台永久素材库
+func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
+	return UploadMaterial(host, accessToken, WxMaterailAdd, "", m)
+}
+
 // Article 图文，永久的
 type Article struct {
 	// Title 标题
@@ -335,11 +340,6 @@ type MaterialResponse struct {
 type MaterialMedia interface {
 	// Parse 返回 Content-Type, io.Reader，error
 	Parse() (string, io.Reader, error)
-}
-
-// Upload 使用参数host, access_token，上传图文素材*MaterialArticle到公众平台永久素材库
-func (m *MaterialArticle) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return UploadMaterial(host, WxMaterailAdd, "", accessToken, m)
 }
 
 // UploadMaterial 上传图文素材到公众平台
@@ -400,7 +400,7 @@ func (m *MaterialImage) Upload(host, accessToken string) (*MaterialResponse, err
 		typ = ""
 		path = WxMediaUploadImg
 	}
-	return UploadMaterial(host, path, accessToken, typ, m)
+	return UploadMaterial(host, accessToken, path, typ, m)
 }
 
 // MaterialVideo 视频素材，永久的
@@ -426,7 +426,7 @@ func (m *MaterialVideo) Parse() (string, io.Reader, error) {
 
 // Upload 上传图片文件到微信公共平台
 func (m *MaterialVideo) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return UploadMaterial(host, WxMaterailAddOther, accessToken, "video", m)
+	return UploadMaterial(host, accessToken, WxMaterailAddOther, "video", m)
 }
 
 // MaterialVoice 音频素材，永久的
@@ -441,7 +441,7 @@ func (m *MaterialVoice) Parse() (string, io.Reader, error) {
 
 // Upload 上传音频文件到微信公共平台
 func (m *MaterialVoice) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return UploadMaterial(host, WxMaterailAddOther, accessToken, "voice", m)
+	return UploadMaterial(host, accessToken, WxMaterailAddOther, "voice", m)
 }
 
 // Materialthumb 素材的缩略图
@@ -456,5 +456,5 @@ func (m *Materialthumb) Parse() (string, io.Reader, error) {
 
 // Upload 上传缩略图文件到微信公共平台
 func (m *Materialthumb) Upload(host, accessToken string) (*MaterialResponse, error) {
-	return UploadMaterial(host, WxMaterailAddOther, accessToken, "thumb", m)
+	return UploadMaterial(host, accessToken, WxMaterailAddOther, "thumb", m)
 }
