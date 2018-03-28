@@ -47,7 +47,7 @@ func NewCipherBlock(encodingAESKey string) (cipher.Block, error) {
 	return block, nil
 }
 
-// EncryptMessage微信服务器推送的加密消息
+// EncryptMessage 微信服务器推送的加密消息
 type EncryptMessage struct {
 	// XMLName xml名称
 	XMLName xml.Name `xml:"xml" json:"-"`

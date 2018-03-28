@@ -15,26 +15,26 @@ type Message struct {
 	// CreateTime 消息创建时间 （整型）
 	CreateTime int64
 	// MsgId 消息id，64位整型
-	MsgId int64 `xml:",omitempty"`
+	MsgID int64 `xml:"MsgId,omitempty" json:"MsgId,omitempty"`
 	// MsgType text
 	MsgType CDATA
 	// Content 文本消息内容
 	Content CDATA `xml:",omitempty"`
 	// PicURL 图片链接（由系统生成）
-	PicUrl CDATA `xml:",omitempty"`
+	PicURL CDATA `xml:"PicUrl,omitempty" json:"PicUrl,omitempty"`
 	// MediaId 图片消息媒体id，可以调用多媒体文件下载接口拉取数据
-	MediaId CDATA `xml:",omitempty"`
+	MediaID CDATA `xml:"MediaId,omitempty" json:"MediaId,omitempty"`
 	// Foramt 语音格式，如amr，speex等
 	Format CDATA `xml:",omitempty"`
 	// Recognition 语音识别结果，UTF8编码
 	Recognition CDATA `xml:",omitempty"`
 	// ThumbMediaId 视频消息缩略图的媒体id，
 	// 可以调用多媒体文件下载接口拉取数据。
-	ThumbMediaId CDATA `xml:",omitempty"`
+	ThumbMediaID CDATA `xml:"ThumbMediaId,omitempty" json:"ThumbMediaId,omitempty"`
 	// LocationX 地理位置维度
-	Location_X float64 `xml:",omitempty"`
+	LocationX float64 `xml:"Location_X,omitempty" json:"Location_X,omitempty"`
 	// LocationY 地理位置经度
-	Location_Y float64 `xml:",omitempty"`
+	LocationY float64 `xml:"Location_Y,omitempty" json:"Location_Y,omitempty"`
 	// Scale 地图缩放大小
 	Scale int64 `xml:",omitempty"`
 	// Label 地理位置信息
@@ -44,7 +44,7 @@ type Message struct {
 	// Description 消息描述
 	Description CDATA `xml:",omitempty"`
 	// URL 消息链接
-	Url CDATA `xml:",omitempty"`
+	URL CDATA `xml:"Url,omitempty"`
 	// Event 事件类型，subscribe(订阅)、unsubscribe(取消订阅)
 	Event CDATA `xml:",omitempty"`
 	// EventKey 事件KEY值，qrscene_为前缀，后面为二维码的参数值
@@ -63,7 +63,7 @@ type Message struct {
 	// 自定义菜单事件
 
 	// MenuID 点击菜单跳转链接时的时间推送, Event: VIEW
-	MenuId string `xml:",omitempty"`
+	MenuID string `xml:"MenuId,omitempty" json:"MenuId,omitempty"`
 	// ScanCodeInfo: 扫描事件推送
 	//   1. Event是scancode_push：
 	//	   扫码推事件的事件推送
@@ -93,7 +93,7 @@ func (c CDATA) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(v, start)
 }
 
-// ScanCodeInfo扫描事件推送
+// ScanCodeInfo 扫描事件推送
 type ScanCodeInfo struct {
 	// ScanType
 	ScanType CDATA `xml:",omitempty"`
@@ -124,9 +124,9 @@ type SendPicsInfo struct {
 // SendLocationInfo 弹出地理位置选择器的事件推送
 type SendLocationInfo struct {
 	// LocationX X坐标信息
-	Location_X CDATA `xml:",omitempty"`
+	LocationX CDATA `xml:"Location_X,omitempty"`
 	// LocationY Y坐标信息
-	Location_Y CDATA `xml:",omitempty"`
+	LocationY CDATA `xml:"Location_Y,omitempty"`
 	// Scale 精度，可理解为精度或者比例尺、越精细的话 scale越高
 	Scale CDATA `xml:",omitempty"`
 	// Lable 地理位置的字符串信息
@@ -153,7 +153,7 @@ type ResponseMessage struct {
 
 // Media 多媒体类型的：image/voice/video，MediaId必须
 type Media struct {
-	MediaId     CDATA `xml:",omitempty"`
+	MediaID     CDATA `xml:"MediaId,omitempty"`
 	Title       CDATA `xml:",omitempty"`
 	Description CDATA `xml:",omitempty"`
 }
@@ -163,8 +163,8 @@ type Music struct {
 	Title        CDATA `xml:",omitempty"`
 	Description  CDATA `xml:",omitempty"`
 	MusicURL     CDATA `xml:",omitempty"`
-	HQMusicUrl   CDATA `xml:",omitempty"`
-	ThumbMediaId CDATA `xml:",omitempty"`
+	HQMusicURL   CDATA `xml:"HQMusicUrl,omitempty"`
+	ThumbMediaID CDATA `xml:"ThumbMediaId,omitempty"`
 }
 
 // Articles 图文消息
@@ -172,17 +172,17 @@ type Articles struct {
 	Item []*Article `xml:"item,omitempty"`
 }
 
-// ArticleItem 图文消息
+// Article 图文消息
 type Article struct {
 	Title       CDATA `xml:",omitempty"`
 	Description CDATA `xml:",omitempty"`
-	PicUrl      CDATA `xml:",omitempty"`
-	Url         CDATA `xml:",omitempty"`
+	PicURL      CDATA `xml:"PicUrl,omitempty"`
+	URL         CDATA `xml:"Url,omitempty"`
 }
 
 // NewArticle 新建图文文章
-func NewArticle(Title, Description, PicUrl, Url string) *Article {
-	return &Article{CDATA(Title), CDATA(Description), CDATA(PicUrl), CDATA(Url)}
+func NewArticle(Title, Description, PicURL, URL string) *Article {
+	return &Article{CDATA(Title), CDATA(Description), CDATA(PicURL), CDATA(URL)}
 }
 
 // NewTextMessage 创建被动回复文本消息
@@ -197,13 +197,13 @@ func NewTextMessage(ToUserName, FromUserName CDATA, Content string) *ResponseMes
 }
 
 // NewMedia 新的多媒体消息，包含：image/voice/video
-func NewMedia(MediaId, Title, Description string) *Media {
-	return &Media{CDATA(MediaId), CDATA(Title), CDATA(Description)}
+func NewMedia(MediaID, Title, Description string) *Media {
+	return &Media{CDATA(MediaID), CDATA(Title), CDATA(Description)}
 }
 
 // NewMusic 新音乐消息结构
-func NewMusic(Title, Description, MusicURL, HQMusicUrl, ThumbMediaId string) *Music {
-	return &Music{CDATA(Title), CDATA(Description), CDATA(MusicURL), CDATA(HQMusicUrl), CDATA(ThumbMediaId)}
+func NewMusic(Title, Description, MusicURL, HQMusicURL, ThumbMediaID string) *Music {
+	return &Music{CDATA(Title), CDATA(Description), CDATA(MusicURL), CDATA(HQMusicURL), CDATA(ThumbMediaID)}
 }
 
 // newMediaMessage 新的多媒体消息

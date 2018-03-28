@@ -53,8 +53,8 @@ func TestButton(t *testing.T) {
 				out(t, "-- type: %s\n", sub.Type)
 				out(t, "-- key: %s\n", sub.Key)
 				out(t, "-- url: %s\n", sub.URL)
-				out(t, "-- media_id: %s\n", sub.MediaId)
-				out(t, "-- appid: %s\n", sub.AppId)
+				out(t, "-- media_id: %s\n", sub.MediaID)
+				out(t, "-- appid: %s\n", sub.AppID)
 				out(t, "-- pagepath: %s\n", sub.PagePath)
 			}
 			continue
@@ -63,8 +63,8 @@ func TestButton(t *testing.T) {
 		out(t, "- type: %s\n", button.Type)
 		out(t, "- key: %s\n", button.Key)
 		out(t, "- url: %s\n", button.URL)
-		out(t, "- media_id: %s\n", button.MediaId)
-		out(t, "- appid: %s\n", button.AppId)
+		out(t, "- media_id: %s\n", button.MediaID)
+		out(t, "- appid: %s\n", button.AppID)
 		out(t, "- pagepath: %s\n", button.PagePath)
 	}
 }
@@ -83,7 +83,7 @@ func TestXML(t *testing.T) {
 		MsgType:      "text",
 		Event:        "event",
 		EventKey:     "eventKey",
-		MenuId:       "1111",
+		MenuID:       "1111",
 		ScanCodeInfo: &ScanCodeInfo{
 			ScanType:   "1",
 			ScanResult: "2",
@@ -130,10 +130,10 @@ func TestMsg(t *testing.T) {
 		ToUserName:   "gh_763d78092799",
 		FromUserName: "okNT7wrJ00zXBowaRS-CAeFcQ7rc",
 		CreateTime:   1515567192,
-		MsgId:        6509311524975152819,
+		MsgID:        6509311524975152819,
 		MsgType:      "location",
-		Location_X:   46.682068,
-		Location_Y:   217.085495,
+		LocationX:    46.682068,
+		LocationY:    217.085495,
 		Scale:        16,
 		Label:        "a省b市c区d路1号)",
 	}

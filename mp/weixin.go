@@ -1,4 +1,4 @@
-// Package main used for weixin (mp.weixin.qq.com)
+// Package mp used for weixin (mp.weixin.qq.com)
 package mp
 
 import (
@@ -22,7 +22,7 @@ type WeiXin struct {
 	Host string
 	// 微信开发者ID
 	// AppID 应用ID
-	AppId string
+	AppID string `xml:"AppId" json:"AppId"`
 	// AppSecret 应用密钥
 	AppSecret string
 	// Token 令牌
@@ -55,7 +55,7 @@ func New(filename string) (*WeiXin, error) {
 func CreateWeiXinFile(filename string) error {
 	wx := &WeiXin{
 		Host:           "api.weixin.qq.com",
-		AppId:          "appid",
+		AppID:          "appid",
 		AppSecret:      "appsecret",
 		Token:          "token",
 		EncodingAESKey: "1234567890123456789012345678901234567890123",
@@ -74,8 +74,8 @@ const (
 	WxTokenPath = "cgi-bin/token"
 	// WxGrantType 获取access_token时使用
 	WxGrantType = "client_credential"
-	// WxGetCallBackIP 获取微信服务器IP地址时使用
-	WxGetCallBackIpPath = "cgi-bin/getcallbackip"
+	// WxGetCallBackIPPath 获取微信服务器IP地址时使用
+	WxGetCallBackIPPath = "cgi-bin/getcallbackip"
 )
 
 // Token 从微信公众平台申请Token的响应
@@ -99,27 +99,27 @@ type Token struct {
 func (wx *WeiXin) GetAccessToken() error {
 	// 组合URL
 	uri := fmt.Sprintf("https://%s/%s?grant_type=%s&appid=%s&secret=%s",
-		wx.Host, WxTokenPath, WxGrantType, wx.AppId, wx.AppSecret)
+		wx.Host, WxTokenPath, WxGrantType, wx.AppID, wx.AppSecret)
 	res, err := http.Get(uri)
 	if err != nil {
 		return fmt.Errorf("appid %s get access_token: %s",
-			wx.AppId, err)
+			wx.AppID, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("appid %s read response: %s", wx.AppId, err)
+		return fmt.Errorf("appid %s read response: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 
 	var t Token
 	if err = json.Unmarshal(b, &t); err != nil {
 		return fmt.Errorf("appid %s unmarshal response json: %s",
-			wx.AppId, err)
+			wx.AppID, err)
 	}
 
 	// 检查t.AccessToken为空，返回nil，错误代码和错误信息
 	if t.AccessToken == "" {
-		return fmt.Errorf("appid %s get access_token errcode: %d, errmsg: %s", wx.AppId, t.ErrCode, t.ErrMsg)
+		return fmt.Errorf("appid %s get access_token errcode: %d, errmsg: %s", wx.AppID, t.ErrCode, t.ErrMsg)
 	}
 	wx.accessToken = t.AccessToken
 	wx.expires = t.ExpiresIn
@@ -242,7 +242,7 @@ USEOLDKEY:
 		fmt.Fprint(w, "")
 		return
 	}
-	eres := NewEncryptResponse(wx.AppId, wx.Token, timestamp, nonce, ciphertext)
+	eres := NewEncryptResponse(wx.AppID, wx.Token, timestamp, nonce, ciphertext)
 	resp, err := xml.Marshal(eres)
 	if err != nil {
 		fmt.Printf("handle message marshal xml response %s\n", err)
@@ -305,7 +305,7 @@ func (wx *WeiXin) HandleEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CallBackIP微信服务器IP地址
+// CallBackIP 微信服务器IP地址
 type CallBackIP struct {
 	//微信服务器IP地址列表
 	IPList []string `json:"ip_list"`
@@ -320,7 +320,7 @@ type CallBackIP struct {
 // 以便进行相关限制，可以通过该接口获得微信服务器IP地址列表或者IP网段信息。
 func (wx *WeiXin) GetCallBackIP() (*CallBackIP, error) {
 	uri := fmt.Sprintf("https://%s/%s?access_token=%s", wx.Host,
-		WxGetCallBackIpPath, wx.accessToken)
+		WxGetCallBackIPPath, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
 		return nil, fmt.Errorf("get callback ip address of weixin: %s", err)

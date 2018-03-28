@@ -66,9 +66,9 @@ type Button struct {
 	// URL view/miniprogram等类型必须，网页链接，用户点击惨淡可以打开链接，不超过1024字节，type为miniprogram时，不支持小程序的老版本客户端打开本URL
 	URL string `json:"url,omitempty"`
 	// MediaId media_id类型和view_limited类型必须，调用新增永久素材接口返回的合法media_id
-	MediaId string `json:"media_id,omitempty"`
+	MediaID string `json:"media_id,omitempty"`
 	// AppId miniprogram类型必须，小程序的appid
-	AppId string `json:"appid,omitempty"`
+	AppID string `json:"appid,omitempty"`
 	// miniprogram必须，小程序的页面路径
 	PagePath string `json:"pagepath,omitempty"`
 	// SubButton 子菜单
@@ -130,20 +130,20 @@ type Menu struct {
 	// Button 一级菜单组
 	Button []*Button `json:"button,omitempty"`
 	// Menu 个性化菜单的ID，只有返回的是个性化菜单是才不为空
-	MenuId string `json:"menuid,omitempty"`
+	MenuID string `json:"menuid,omitempty"`
 	// ErrCode 自定义菜单错误码
 	ErrCode int `json:"errcode,omitempty"`
 	// ErrMsg 自定义菜单错误信息
 	ErrMsg string `json:"errmsg,omitempty"`
 }
 
-// Response 微信返回的响应信息, 用在只返回状态的请求
+// MenuResponse 微信返回的响应信息, 用在只返回状态的请求
 type MenuResponse struct {
 	// ErrCode 自定义菜单错误码
 	ErrCode int `json:"errcode,omitempty"`
 	// ErrMsg 自定义菜单错误信息
 	ErrMsg string `json:"errmsg,omitempty"`
-	MenuId string `json:"menuid,omitempty"`
+	MenuID string `json:"menuid,omitempty"`
 }
 
 // post 提交自定义菜单操作
@@ -152,23 +152,23 @@ func (wx *WeiXin) post(action string, menu interface{}) (*MenuResponse, error) {
 		wx.Host, WxMenuPath, action, wx.accessToken)
 	b, err := json.Marshal(menu)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s json marshal: %s\n", wx.AppId, err)
+		return nil, fmt.Errorf("AppID %s json marshal: %s", wx.AppID, err)
 	}
 	res, err := http.Post(uri, "application/json; charset=utf-8",
 		bytes.NewReader(b))
 	if err != nil {
-		return nil, fmt.Errorf("appid %s post create menu: %s\n",
-			wx.AppId, err)
+		return nil, fmt.Errorf("AppID %s post create menu: %s",
+			wx.AppID, err)
 	}
 
 	b, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 	var wxinfo MenuResponse
 	if err = json.Unmarshal(b, &wxinfo); err != nil {
-		return nil, fmt.Errorf("appid %s json unmarshal menu: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s json unmarshal menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
@@ -184,17 +184,17 @@ func (wx *WeiXin) GetMenu(accessToken string) (*MenuOfConditional, error) {
 		wx.Host, WxMenuPath, WxMenuGet, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s get menu: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s get menu: %s", wx.AppID, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s menu response read body: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 
 	var menu MenuOfConditional
 	if err = json.Unmarshal(b, &menu); err != nil {
-		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s get menu unmarshal response: %s", wx.AppID, err)
 	}
 
 	return &menu, nil
@@ -220,17 +220,17 @@ func (wx *WeiXin) deleteMenu(menuid string) (*MenuResponse, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("appid %s the request of delete menu %s",
-			wx.AppId, err)
+			wx.AppID, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s del menu response read body: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s del menu response read body: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 
 	var wxinfo MenuResponse
 	if err := json.Unmarshal(b, &wxinfo); err != nil {
-		return nil, fmt.Errorf("appid %s unmarshal response when delete menu: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s unmarshal response when delete menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
@@ -243,7 +243,7 @@ func (wx *WeiXin) DeleteMenu() (*MenuResponse, error) {
 // MatchRule 菜单匹配规则
 type MatchRule struct {
 	// TagId 用户标签的id，可通过用户标签管理接口获取
-	TagId string `json:"tag_id,omitempty"`
+	TagID string `json:"tag_id,omitempty"`
 	// Sex 性别：男（1）女（2），不填则不做匹配
 	Sex string `json:"sex,omitempty"`
 	// Country 国家信息，是用户在微信中设置的地区，具体请参考地区信息表
@@ -265,17 +265,17 @@ type MatchRule struct {
 	Language string `json:"language,omitempty"`
 }
 
-// CreateCustomMenu 创建个性化菜单
+// CreateConditionalMenu 创建个性化菜单
 func (wx *WeiXin) CreateConditionalMenu(menu *ConditionalMenu) (*MenuResponse, error) {
 	return wx.post(WxMenuAddConditional, menu)
 }
 
-// DeleteCustomMenu删除个性化菜单
+// DeleteConditionalMenu 删除个性化菜单
 func (wx *WeiXin) DeleteConditionalMenu(menuid string) (*MenuResponse, error) {
 	return wx.deleteMenu(menuid)
 }
 
-// TryCustomMenu 测试个性化菜单匹配结果
+// TryConditionalMenu 测试个性化菜单匹配结果
 func (wx *WeiXin) TryConditionalMenu(userid string) (*Menu, error) {
 	uri := fmt.Sprintf("https://%s/%s/%s?access_token=%s", wx.Host,
 		WxMenuPath, WxMenuTryMatch, wx.accessToken)
@@ -284,22 +284,22 @@ func (wx *WeiXin) TryConditionalMenu(userid string) (*Menu, error) {
 		bytes.NewReader([]byte(s)))
 	if err != nil {
 		return nil, fmt.Errorf("appid %s trymatch custom menu: %s",
-			wx.AppId, err)
+			wx.AppID, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s trymatch read body: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s trymatch read body: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 
 	var wxinfo Menu
 	if err = json.Unmarshal(b, &wxinfo); err != nil {
-		return nil, fmt.Errorf("appid %s parse content when trymatch custom menu: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s parse content when trymatch custom menu: %s", wx.AppID, err)
 	}
 	return &wxinfo, nil
 }
 
-// MenuConfig 获取自定义菜单配置接口
+// CurrentSelfMenu 获取自定义菜单配置接口
 type CurrentSelfMenu struct {
 	// IsMenuOpen 菜单是否开启，0代表未开启，1代表开启
 	IsMenuOpen int `json:"is_menu_open"`
@@ -311,23 +311,23 @@ type CurrentSelfMenu struct {
 	ErrMsg string `json:"errmsg,omitempty"`
 }
 
-// GetCurrentMenu 获取自定义菜单配置接口
+// GetCurrentSelfMenu 获取自定义菜单配置接口
 func (wx *WeiXin) GetCurrentSelfMenu() (*CurrentSelfMenu, error) {
 	uri := fmt.Sprintf("https://%s/%s?access_token=%s", wx.Host,
 		WxGetCurrentSelfMenu, wx.accessToken)
 	res, err := http.Get(uri)
 	if err != nil {
 		return nil, fmt.Errorf("appid %s get_current_selfmenu_info: %s",
-			wx.AppId, err)
+			wx.AppID, err)
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("appid %s getcurrentmenu read body: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s getcurrentmenu read body: %s", wx.AppID, err)
 	}
 	defer res.Body.Close()
 	var menu CurrentSelfMenu
 	if err = json.Unmarshal(b, &menu); err != nil {
-		return nil, fmt.Errorf("appid %s get_current_selfmenu_info unmarshal response: %s", wx.AppId, err)
+		return nil, fmt.Errorf("appid %s get_current_selfmenu_info unmarshal response: %s", wx.AppID, err)
 	}
 	return &menu, nil
 }
