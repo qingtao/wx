@@ -11,7 +11,7 @@ import (
 // WxUserUpdaterMark 设置用户备注
 const WxUserUpdaterMark = "cgi-bin/user/info/updateremark"
 
-// MarkUser 备注用户
+// MarkUser 备注用户, openid 是用户标识符，根据微信公众平台的api说明，remark不能超过30个字符
 func MarkUser(host, accessToken, openid, remark string) (*Response, error) {
 	URL := fmt.Sprintf("https://%s/%s?access_token=%s", host, WxUserUpdaterMark, accessToken)
 	JSON := `{"openid":"` + openid + `","remark":"` + remark + `"}`

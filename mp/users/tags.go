@@ -100,6 +100,10 @@ const WxTagsUpdate = "cgi-bin/tags/update"
 
 // UpdateTag 修改标签，id不能是0/1/2
 func UpdateTag(host, accessToken, tagname string, id int) (*TagResponse, error) {
+	// 检查id是否大于等于3，实际是微信公众平台会返回错误代码:45058
+	if id < 3 {
+		return nil, fmt.Errorf("ID of tag must be greater or equal to three, but it is %d", id)
+	}
 	return changeTag(host, accessToken, WxTagsUpdate, tagname, id)
 }
 
@@ -108,6 +112,10 @@ const WxTagsDelete = "cgi-bin/tags/delete"
 
 // DeleteTag 删除标签
 func DeleteTag(host, accessToken string, id int) (*TagResponse, error) {
+	// 检查id是否大于等于3，实际是微信公众平台会返回错误代码:45058
+	if id < 3 {
+		return nil, fmt.Errorf("ID of tag must be greater or equal to three, but it is %d", id)
+	}
 	return changeTag(host, accessToken, WxTagsDelete, "", id)
 }
 
